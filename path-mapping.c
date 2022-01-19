@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <stdarg.h>
 #include <malloc.h>
 
@@ -21,6 +22,9 @@ __thread int buffer_size = -1;
 
 typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
+typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags, ...);
+typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
+typedef DIR* (*orig_opendir_func_type)(const char *name);
 
 static int starts_with(const char *str, const char *prefix) {
     return (strncmp(prefix, str, strlen(prefix)) == 0);
