@@ -66,6 +66,10 @@ static const char *fix_path(const char *path)
 
 int open(const char *pathname, int flags, ...)
 {
+#ifdef DEBUG
+    printf("open(%s) called\n", pathname);
+#endif
+
     const char *new_path = fix_path(pathname);
 
     orig_open_func_type orig_func;
@@ -85,6 +89,10 @@ int open(const char *pathname, int flags, ...)
 
 int open64(const char *pathname, int flags, ...)
 {
+#ifdef DEBUG
+    printf64("open64(%s) called\n", pathname);
+#endif
+
     const char *new_path = fix_path(pathname);
 
     orig_open_func_type orig_func;
