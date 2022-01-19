@@ -72,7 +72,7 @@ int open(const char *pathname, int flags, ...)
     orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open");
 
     // If O_CREAT is used to create a file, the file access mode must be given.
-    if (flags & O_CREAT) {
+    if (__OPEN_NEEDS_MODE(flags)) {
         va_list args;
         va_start(args, flags);
         int mode = va_arg(args, int);
@@ -91,7 +91,7 @@ int open64(const char *pathname, int flags, ...)
     orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open64");
 
     // If O_CREAT is used to create a file, the file access mode must be given.
-    if (flags & O_CREAT) {
+    if (__OPEN_NEEDS_MODE(flags)) {
         va_list args;
         va_start(args, flags);
         int mode = va_arg(args, int);
