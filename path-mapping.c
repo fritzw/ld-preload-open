@@ -6,6 +6,8 @@
 #include <fcntl.h> // stat
 #include <dirent.h> // DIR*
 #include <stdarg.h> // va_start, va_arg
+#include <sys/vfs.h> // statfs
+#include <sys/statvfs.h> // statvfs
 
 //#define DEBUG
 
@@ -14,6 +16,7 @@
 // #define DISABLE_OPENAT
 // #define DISABLE_FOPEN
 // #define DISABLE_STAT
+// #define DISABLE_STATFS
 // #define DISABLE_XSTAT
 // #define DISABLE_ACCESS
 // #define DISABLE_OPENDIR
@@ -135,7 +138,8 @@ int open64(const char *pathname, int flags, ...)
         return orig_func(new_path, flags);
     }
 }
-#endif
+#endif // DISABLE_OPEN
+
 
 #ifndef DISABLE_OPENAT
 typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags, ...);
@@ -191,7 +195,8 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
         return orig_func(dirfd, new_path, flags);
     }
 }
-#endif
+#endif // DISABLE_OPENAT
+
 
 #ifndef DISABLE_FOPEN
 typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
@@ -229,7 +234,8 @@ FILE * fopen64 ( const char * filename, const char * mode )
 
     return orig_func(new_path, mode);
 }
-#endif
+#endif // DISABLE_FOPEN
+
 
 #ifndef DISABLE_STAT
 typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
@@ -267,7 +273,48 @@ int lstat(const char *path, struct stat *buf)
 
     return orig_func(new_path, buf);
 }
+#endif // DSIABLE_STAT
+
+
+#ifndef DISABLE_STATFS
+typedef int (*orig_statfs_func_type)(const char *path, struct statfs *buf);
+typedef int (*orig_statvfs_func_type)(const char *path, struct statvfs *buf);
+
+int statfs(const char *path, struct statfs *buf)
+{
+#ifdef DEBUG
+    fprintf(stderr, "statfs(%s) called\n", path);
 #endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_statfs_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_statfs_func_type)dlsym(RTLD_NEXT, "statfs");
+    }
+
+    return orig_func(new_path, buf);
+}
+
+int statvfs(const char *path, struct statvfs *buf)
+{
+#ifdef DEBUG
+    fprintf(stderr, "statvfs(%s) called\n", path);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_statvfs_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_statvfs_func_type)dlsym(RTLD_NEXT, "statvfs");
+    }
+
+    return orig_func(new_path, buf);
+}
+#endif // DISABLE_STATFS
+
 
 #ifndef DISABLE_XSTAT
 typedef int (*orig_xstat64_func_type)(int ver, const char * path, struct stat64 * stat_buf);
@@ -341,7 +388,8 @@ int __lxstat(int ver, const char * path, struct stat * stat_buf)
 
     return orig_func(ver, new_path, stat_buf);
 }
-#endif
+#endif // DISABLE_XSTAT
+
 
 #ifndef DISABLE_ACCESS
 typedef int (*orig_access_func_type)(const char *pathname, int mode);
@@ -362,7 +410,8 @@ int access(const char *pathname, int mode)
 
     return orig_func(new_path, mode);
 }
-#endif
+#endif // DISABLE_ACCESS
+
 
 #ifndef DISABLE_OPENDIR
 typedef DIR* (*orig_opendir_func_type)(const char *name);
@@ -383,7 +432,8 @@ DIR *opendir(const char *name)
 
     return orig_func(new_path);
 }
-#endif
+#endif // DISABLE_OPENDIR
+
 
 #ifndef DISABLE_READLINK
 typedef ssize_t (*orig_readlink_func_type)(const char *pathname, char *buf, size_t bufsiz);
@@ -424,4 +474,4 @@ ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz)
     // The returned content of the link is not mapped in reverse. It could also be relative.
     return orig_func(dirfd, new_path, buf, bufsiz);
 }
-#endif
+#endif // DISABLE_READLINK
