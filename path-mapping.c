@@ -10,6 +10,21 @@
 #include <sys/statvfs.h> // statvfs
 
 //#define DEBUG
+//#define QUIET
+
+#ifdef QUIET
+    #define info_fprintf(...) // remove all info_fprintf including args
+#else
+    #define info_fprintf fprintf // compile info_fprintf as fprintf
+#endif
+
+#ifdef DEBUG
+    #define debug_fprintf fprintf // compile debug_fprintf as fprintf
+#else
+    #define debug_fprintf(...) // remove all debug_fprintf including args
+#endif
+
+#define error_fprintf fprintf // always print errors
 
 // Enable or disable specific overrides (always includes the 64 version if applicable)
 // #define DISABLE_OPEN
@@ -70,13 +85,13 @@ static const char *fix_path(const char *path, char *new_path, size_t new_path_si
             size_t prefix_length = pathlen(prefix);
             size_t new_length = strlen(path) + pathlen(replace) - prefix_length;
             if (new_length > new_path_size - 1) {
-                fprintf(stderr, "path-mapping: Path too long: %s", path);
+                error_fprintf(stderr, "ERROR fix_path: Path too long: %s", path);
                 return path;
             }
             const char *rest = path + prefix_length;
             strcpy(new_path, replace);
             strcat(new_path, rest);
-            fprintf(stderr, "Mapped Path: '%s' => '%s'\n", path, new_path);
+            info_fprintf(stderr, "Mapped Path: '%s' => '%s'\n", path, new_path);
             return new_path;
         }
     }
@@ -89,9 +104,7 @@ typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
 
 int open(const char *pathname, int flags, ...)
 {
-#ifdef DEBUG
-    fprintf(stderr, "open(%s) called\n", pathname);
-#endif
+    debug_fprintf(stderr, "open(%s) called\n", pathname);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -115,9 +128,7 @@ int open(const char *pathname, int flags, ...)
 
 int open64(const char *pathname, int flags, ...)
 {
-#ifdef DEBUG
-    fprintf(stderr, "open64(%s) called\n", pathname);
-#endif
+    debug_fprintf(stderr, "open64(%s) called\n", pathname);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -146,9 +157,7 @@ typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags,
 
 int openat(int dirfd, const char *pathname, int flags, ...)
 {
-#ifdef DEBUG
-    fprintf(stderr, "openat(%s) called\n", pathname);
-#endif
+    debug_fprintf(stderr, "openat(%s) called\n", pathname);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -172,9 +181,7 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 
 int openat64(int dirfd, const char *pathname, int flags, ...)
 {
-#ifdef DEBUG
-    fprintf(stderr, "openat64(%s) called\n", pathname);
-#endif
+    debug_fprintf(stderr, "openat64(%s) called\n", pathname);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -203,9 +210,7 @@ typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 
 FILE * fopen ( const char * filename, const char * mode )
 {
-#ifdef DEBUG
-    fprintf(stderr, "fopen(%s) called\n", filename);
-#endif
+    debug_fprintf(stderr, "fopen(%s) called\n", filename);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(filename, buffer, sizeof buffer);
@@ -220,9 +225,7 @@ FILE * fopen ( const char * filename, const char * mode )
 
 FILE * fopen64 ( const char * filename, const char * mode )
 {
-#ifdef DEBUG
-    fprintf(stderr, "fopen64(%s) called\n", filename);
-#endif
+    debug_fprintf(stderr, "fopen64(%s) called\n", filename);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(filename, buffer, sizeof buffer);
@@ -242,9 +245,7 @@ typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
 
 int stat(const char *path, struct stat *buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "stat(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "stat(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -259,9 +260,7 @@ int stat(const char *path, struct stat *buf)
 
 int lstat(const char *path, struct stat *buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "lstat(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "lstat(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -282,9 +281,7 @@ typedef int (*orig_statvfs_func_type)(const char *path, struct statvfs *buf);
 
 int statfs(const char *path, struct statfs *buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "statfs(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "statfs(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -299,9 +296,7 @@ int statfs(const char *path, struct statfs *buf)
 
 int statvfs(const char *path, struct statvfs *buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "statvfs(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "statvfs(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -321,9 +316,7 @@ typedef int (*orig_xstat64_func_type)(int ver, const char * path, struct stat64 
 
 int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "__xstat64(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "__xstat64(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -338,9 +331,7 @@ int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
 
 int __lxstat64(int ver, const char * path, struct stat64 * stat_buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "__lxstat64(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "__lxstat64(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -357,9 +348,7 @@ typedef int (*orig_xstat_func_type)(int ver, const char * path, struct stat * st
 
 int __xstat(int ver, const char * path, struct stat * stat_buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "__xstat(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "__xstat(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -374,9 +363,7 @@ int __xstat(int ver, const char * path, struct stat * stat_buf)
 
 int __lxstat(int ver, const char * path, struct stat * stat_buf)
 {
-#ifdef DEBUG
-    fprintf(stderr, "__lxstat(%s) called\n", path);
-#endif
+    debug_fprintf(stderr, "__lxstat(%s) called\n", path);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(path, buffer, sizeof buffer);
@@ -396,9 +383,7 @@ typedef int (*orig_access_func_type)(const char *pathname, int mode);
 
 int access(const char *pathname, int mode)
 {
-#ifdef DEBUG
-    fprintf(stderr, "access(%s) called\n", pathname);
-#endif
+    debug_fprintf(stderr, "access(%s) called\n", pathname);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -418,9 +403,7 @@ typedef DIR* (*orig_opendir_func_type)(const char *name);
 
 DIR *opendir(const char *name)
 {
-#ifdef DEBUG
-    fprintf(stderr, "opendir(%s) called\n", name);
-#endif
+    debug_fprintf(stderr, "opendir(%s) called\n", name);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(name, buffer, sizeof buffer);
@@ -441,9 +424,7 @@ typedef ssize_t (*orig_readlinkat_func_type)(int dirfd, const char *pathname, ch
 
 ssize_t readlink(const char *pathname, char *buf, size_t bufsiz)
 {
-#ifdef DEBUG
-    fprintf(stderr, "readlink(%s, buf, %d) called\n", pathname, bufsiz);
-#endif
+    debug_fprintf(stderr, "readlink(%s, buf, %d) called\n", pathname, bufsiz);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
@@ -459,9 +440,7 @@ ssize_t readlink(const char *pathname, char *buf, size_t bufsiz)
 
 ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz)
 {
-#ifdef DEBUG
-    fprintf(stderr, "readlinkat(%s, buf, %d) called\n", pathname, bufsiz);
-#endif
+    debug_fprintf(stderr, "readlinkat(%s, buf, %d) called\n", pathname, bufsiz);
 
     char buffer[MAX_PATH];
     const char *new_path = fix_path(pathname, buffer, sizeof buffer);
