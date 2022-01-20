@@ -1,14 +1,11 @@
 #define _GNU_SOURCE
 
 #include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include <dlfcn.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <stdarg.h>
+#include <dlfcn.h> // dlsym
+#include <fcntl.h> // stat
+#include <dirent.h> // DIR*
+#include <stdarg.h> // va_start, va_arg
 
 //#define DEBUG
 
