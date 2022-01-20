@@ -20,11 +20,13 @@
 // #define DISABLE_XSTAT
 // #define DISABLE_ACCESS
 // #define DISABLE_OPENDIR
+// #define DISABLE_READLINK
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
 static const char *path_map[][2] = {
     { "/etc/ownCloud", "/home/user1/.etc/ownCloud" },
+    { "/tmp/path-mapping/tests/virtual", "/tmp/path-mapping/tests/real" },
 };
 
 #ifndef MAX_PATH
@@ -383,5 +385,46 @@ DIR *opendir(const char *name)
     }
 
     return orig_func(new_path);
+}
+#endif
+
+#ifndef DISABLE_READLINK
+typedef ssize_t (*orig_readlink_func_type)(const char *pathname, char *buf, size_t bufsiz);
+typedef ssize_t (*orig_readlinkat_func_type)(int dirfd, const char *pathname, char *buf, size_t bufsiz);
+
+ssize_t readlink(const char *pathname, char *buf, size_t bufsiz)
+{
+#ifdef DEBUG
+    fprintf(stderr, "readlink(%s, buf, %d) called\n", pathname, bufsiz);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_readlink_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_readlink_func_type)dlsym(RTLD_NEXT, "readlink");
+    }
+
+    // The returned content of the link is not mapped in reverse. It could also be relative.
+    return orig_func(new_path, buf, bufsiz);
+}
+
+ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz)
+{
+#ifdef DEBUG
+    fprintf(stderr, "readlinkat(%s, buf, %d) called\n", pathname, bufsiz);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_readlinkat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_readlinkat_func_type)dlsym(RTLD_NEXT, "readlinkat");
+    }
+
+    // The returned content of the link is not mapped in reverse. It could also be relative.
+    return orig_func(dirfd, new_path, buf, bufsiz);
 }
 #endif
