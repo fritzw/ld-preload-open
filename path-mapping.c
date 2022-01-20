@@ -12,6 +12,9 @@
 
 //#define DEBUG
 
+// Enable or disable specific overrides
+#define ENABLE_XSTAT
+
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
 static const char *path_map[][2] = {
@@ -250,6 +253,78 @@ int lstat(const char *path, struct stat *buf)
 
     return orig_func(new_path, buf);
 }
+
+#ifdef ENABLE_XSTAT
+typedef int (*orig_xstat64_func_type)(int ver, const char * path, struct stat64 * stat_buf);
+int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
+{
+#ifdef DEBUG
+    printf("__xstat64(%s) called\n", path);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_xstat64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_xstat64_func_type)dlsym(RTLD_NEXT, "__xstat64");
+    }
+
+    return orig_func(ver, new_path, stat_buf);
+}
+
+int __lxstat64(int ver, const char * path, struct stat64 * stat_buf)
+{
+#ifdef DEBUG
+    printf("__lxstat64(%s) called\n", path);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_xstat64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_xstat64_func_type)dlsym(RTLD_NEXT, "__lxstat64");
+    }
+
+    return orig_func(ver, new_path, stat_buf);
+}
+
+typedef int (*orig_xstat_func_type)(int ver, const char * path, struct stat * stat_buf);
+int __xstat(int ver, const char * path, struct stat * stat_buf)
+{
+#ifdef DEBUG
+    printf("__xstat(%s) called\n", path);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_xstat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_xstat_func_type)dlsym(RTLD_NEXT, "__xstat");
+    }
+
+    return orig_func(ver, new_path, stat_buf);
+}
+
+int __lxstat(int ver, const char * path, struct stat * stat_buf)
+{
+#ifdef DEBUG
+    printf("__lxstat(%s) called\n", path);
+#endif
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_xstat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_xstat_func_type)dlsym(RTLD_NEXT, "__lxstat");
+    }
+
+    return orig_func(ver, new_path, stat_buf);
+}
+#endif
 
 int access(const char *pathname, int mode)
 {
