@@ -24,6 +24,7 @@ typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
 typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags, ...);
 typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
+typedef int (*orig_access_func_type)(const char *pathname, int mode);
 typedef DIR* (*orig_opendir_func_type)(const char *name);
 
 static int starts_with(const char *str, const char *prefix) {
@@ -230,6 +231,22 @@ int lstat(const char *path, struct stat *buf)
     }
 
     return orig_func(new_path, buf);
+}
+
+int access(const char *pathname, int mode)
+{
+#ifdef DEBUG
+    printf("access(%s) called\n", path);
+#endif
+
+    const char *new_path = fix_path(pathname);
+
+    orig_access_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_access_func_type)dlsym(RTLD_NEXT, "access");
+    }
+
+    return orig_func(new_path, mode);
 }
 
 DIR *opendir(const char *name)
