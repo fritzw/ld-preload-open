@@ -74,7 +74,7 @@ static const char *fix_path(const char *path, char *new_path, size_t new_path_si
             const char *rest = path + prefix_length;
             strcpy(new_path, replace);
             strcat(new_path, rest);
-            printf("Mapped Path: '%s' => '%s'\n", path, new_path);
+            fprintf(stderr, "Mapped Path: '%s' => '%s'\n", path, new_path);
             return new_path;
         }
     }
@@ -88,7 +88,7 @@ typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
 int open(const char *pathname, int flags, ...)
 {
 #ifdef DEBUG
-    printf("open(%s) called\n", pathname);
+    fprintf(stderr, "open(%s) called\n", pathname);
 #endif
 
     char buffer[MAX_PATH];
@@ -114,7 +114,7 @@ int open(const char *pathname, int flags, ...)
 int open64(const char *pathname, int flags, ...)
 {
 #ifdef DEBUG
-    printf("open64(%s) called\n", pathname);
+    fprintf(stderr, "open64(%s) called\n", pathname);
 #endif
 
     char buffer[MAX_PATH];
@@ -144,7 +144,7 @@ typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags,
 int openat(int dirfd, const char *pathname, int flags, ...)
 {
 #ifdef DEBUG
-    printf("openat(%s) called\n", pathname);
+    fprintf(stderr, "openat(%s) called\n", pathname);
 #endif
 
     char buffer[MAX_PATH];
@@ -170,7 +170,7 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 int openat64(int dirfd, const char *pathname, int flags, ...)
 {
 #ifdef DEBUG
-    printf("openat64(%s) called\n", pathname);
+    fprintf(stderr, "openat64(%s) called\n", pathname);
 #endif
 
     char buffer[MAX_PATH];
@@ -200,7 +200,7 @@ typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 FILE * fopen ( const char * filename, const char * mode )
 {
 #ifdef DEBUG
-    printf("fopen(%s) called\n", filename);
+    fprintf(stderr, "fopen(%s) called\n", filename);
 #endif
 
     char buffer[MAX_PATH];
@@ -217,7 +217,7 @@ FILE * fopen ( const char * filename, const char * mode )
 FILE * fopen64 ( const char * filename, const char * mode )
 {
 #ifdef DEBUG
-    printf("fopen64(%s) called\n", filename);
+    fprintf(stderr, "fopen64(%s) called\n", filename);
 #endif
 
     char buffer[MAX_PATH];
@@ -238,7 +238,7 @@ typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
 int stat(const char *path, struct stat *buf)
 {
 #ifdef DEBUG
-    printf("stat(%s) called\n", path);
+    fprintf(stderr, "stat(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -255,7 +255,7 @@ int stat(const char *path, struct stat *buf)
 int lstat(const char *path, struct stat *buf)
 {
 #ifdef DEBUG
-    printf("lstat(%s) called\n", path);
+    fprintf(stderr, "lstat(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -276,7 +276,7 @@ typedef int (*orig_xstat64_func_type)(int ver, const char * path, struct stat64 
 int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
 {
 #ifdef DEBUG
-    printf("__xstat64(%s) called\n", path);
+    fprintf(stderr, "__xstat64(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -293,7 +293,7 @@ int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
 int __lxstat64(int ver, const char * path, struct stat64 * stat_buf)
 {
 #ifdef DEBUG
-    printf("__lxstat64(%s) called\n", path);
+    fprintf(stderr, "__lxstat64(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -312,7 +312,7 @@ typedef int (*orig_xstat_func_type)(int ver, const char * path, struct stat * st
 int __xstat(int ver, const char * path, struct stat * stat_buf)
 {
 #ifdef DEBUG
-    printf("__xstat(%s) called\n", path);
+    fprintf(stderr, "__xstat(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -329,7 +329,7 @@ int __xstat(int ver, const char * path, struct stat * stat_buf)
 int __lxstat(int ver, const char * path, struct stat * stat_buf)
 {
 #ifdef DEBUG
-    printf("__lxstat(%s) called\n", path);
+    fprintf(stderr, "__lxstat(%s) called\n", path);
 #endif
 
     char buffer[MAX_PATH];
@@ -350,7 +350,7 @@ typedef int (*orig_access_func_type)(const char *pathname, int mode);
 int access(const char *pathname, int mode)
 {
 #ifdef DEBUG
-    printf("access(%s) called\n", pathname);
+    fprintf(stderr, "access(%s) called\n", pathname);
 #endif
 
     char buffer[MAX_PATH];
@@ -371,7 +371,7 @@ typedef DIR* (*orig_opendir_func_type)(const char *name);
 DIR *opendir(const char *name)
 {
 #ifdef DEBUG
-    printf("opendir(%s) called\n", name);
+    fprintf(stderr, "opendir(%s) called\n", name);
 #endif
 
     char buffer[MAX_PATH];
