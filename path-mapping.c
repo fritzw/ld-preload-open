@@ -9,7 +9,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdarg.h>
-#include <malloc.h>
+
+//#define DEBUG
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -17,8 +18,9 @@ static const char *path_map[][2] = {
     { "/etc/ownCloud", "/home/user1/.etc/ownCloud" },
 };
 
-__thread char *buffer = NULL;
-__thread int buffer_size = -1;
+#ifndef MAX_PATH
+#define MAX_PATH 4096
+#endif
 
 typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
@@ -27,13 +29,22 @@ typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
 typedef int (*orig_access_func_type)(const char *pathname, int mode);
 typedef DIR* (*orig_opendir_func_type)(const char *name);
 
-int path_prefix_matches(const char *prefix, const char *path) {
-    size_t prefix_len = strlen(prefix);
-    while (prefix_len > 0 && prefix[prefix_len - 1] == '/') {
+// Returns strlen(path) without trailing slashes
+size_t pathlen(const char *path)
+{
+    size_t path_length = strlen(path);
+    while (path_length > 0 && path[path_length - 1] == '/') {
         // If the prefix ends with a slash ("/example/dir/"), ignore the slash.
         // Otherwise it would not match the dir itself ("/examle/dir"), e.g. in opendir().
-        prefix_len -= 1;
+        path_length -= 1;
     }
+    return path_length;
+}
+
+// Returns true if the first path components of path match those of prefix (whole word matches only)
+int path_prefix_matches(const char *prefix, const char *path)
+{
+    size_t prefix_len = pathlen(prefix);
     if (strncmp(prefix, path, prefix_len) == 0) {
         // The prefix matches, but "/example/dir" would also match "/example/dirty/file"
         // Thus we only return true if a slash or end-of-string follows the match.
@@ -43,37 +54,24 @@ int path_prefix_matches(const char *prefix, const char *path) {
     return 0;
 }
 
-static char *get_buffer(int min_size) {
-    int step = 63;
-    if (min_size < 1) {
-        min_size = 1;
-    }
-    if (min_size > buffer_size) {
-        if (buffer != NULL) {
-            free(buffer);
-            buffer = NULL;
-            buffer_size = -1;
-        }
-        buffer = malloc(min_size + step);
-        if (buffer != NULL) {
-            buffer_size = min_size + step;
-        }
-    }
-    return buffer;
-}
-
-static const char *fix_path(const char *path)
+// Check if path matches any defined prefix, and if so, replace it with its substitution
+static const char *fix_path(const char *path, char *new_path, size_t new_path_size)
 {
     int count = (sizeof path_map) / (sizeof *path_map); // Array length
     for (int i = 0; i < count; i++) {
         const char *prefix = path_map[i][0];
-        const char *replace = path_map[i][1];
         if (path_prefix_matches(prefix, path)) {
-            const char *rest = path + strlen(prefix);
-            char *new_path = get_buffer(strlen(path) + strlen(replace) - strlen(prefix));
+            const char *replace = path_map[i][1];
+            size_t prefix_length = pathlen(prefix);
+            size_t new_length = strlen(path) + pathlen(replace) - prefix_length;
+            if (new_length > new_path_size - 1) {
+                fprintf(stderr, "path-mapping: Path too long: %s", path);
+                return path;
+            }
+            const char *rest = path + prefix_length;
             strcpy(new_path, replace);
             strcat(new_path, rest);
-            printf("Mapped Path: %s  ==>  %s\n", path, new_path);
+            printf("Mapped Path: '%s' => '%s'\n", path, new_path);
             return new_path;
         }
     }
@@ -87,7 +85,8 @@ int open(const char *pathname, int flags, ...)
     printf("open(%s) called\n", pathname);
 #endif
 
-    const char *new_path = fix_path(pathname);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
 
     static orig_open_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -109,10 +108,11 @@ int open(const char *pathname, int flags, ...)
 int open64(const char *pathname, int flags, ...)
 {
 #ifdef DEBUG
-    printf64("open64(%s) called\n", pathname);
+    printf("open64(%s) called\n", pathname);
 #endif
 
-    const char *new_path = fix_path(pathname);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
 
     static orig_open_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -137,7 +137,8 @@ int openat(int dirfd, const char *pathname, int flags, ...)
     printf("openat(%s) called\n", pathname);
 #endif
 
-    const char *new_path = fix_path(pathname);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
 
     static orig_openat_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -162,7 +163,8 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
     printf("openat64(%s) called\n", pathname);
 #endif
 
-    const char *new_path = fix_path(pathname);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
 
     static orig_openat_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -187,7 +189,8 @@ FILE * fopen ( const char * filename, const char * mode )
     printf("fopen(%s) called\n", filename);
 #endif
 
-    const char *new_path = fix_path(filename);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
 
     static orig_fopen_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -203,7 +206,8 @@ FILE * fopen64 ( const char * filename, const char * mode )
     printf("fopen64(%s) called\n", filename);
 #endif
 
-    const char *new_path = fix_path(filename);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
 
     static orig_fopen_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -219,7 +223,8 @@ int stat(const char *path, struct stat *buf)
     printf("stat(%s) called\n", path);
 #endif
 
-    const char *new_path = fix_path(path);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
 
     static orig_stat_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -235,7 +240,8 @@ int lstat(const char *path, struct stat *buf)
     printf("lstat(%s) called\n", path);
 #endif
 
-    const char *new_path = fix_path(path);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
 
     static orig_stat_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -248,10 +254,11 @@ int lstat(const char *path, struct stat *buf)
 int access(const char *pathname, int mode)
 {
 #ifdef DEBUG
-    printf("access(%s) called\n", path);
+    printf("access(%s) called\n", pathname);
 #endif
 
-    const char *new_path = fix_path(pathname);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
 
     orig_access_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -267,7 +274,8 @@ DIR *opendir(const char *name)
     printf("opendir(%s) called\n", name);
 #endif
 
-    const char *new_path = fix_path(name);
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(name, buffer, sizeof buffer);
 
     static orig_opendir_func_type orig_func = NULL;
     if (orig_func == NULL) {
