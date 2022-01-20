@@ -12,8 +12,14 @@
 
 //#define DEBUG
 
-// Enable or disable specific overrides
-#define ENABLE_XSTAT
+// Enable or disable specific overrides (always includes the 64 version if applicable)
+// #define DISABLE_OPEN
+// #define DISABLE_OPENAT
+// #define DISABLE_FOPEN
+// #define DISABLE_STAT
+// #define DISABLE_XSTAT
+// #define DISABLE_ACCESS
+// #define DISABLE_OPENDIR
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -25,12 +31,6 @@ static const char *path_map[][2] = {
 #define MAX_PATH 4096
 #endif
 
-typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
-typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
-typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags, ...);
-typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
-typedef int (*orig_access_func_type)(const char *pathname, int mode);
-typedef DIR* (*orig_opendir_func_type)(const char *name);
 
 // Returns strlen(path) without trailing slashes
 size_t pathlen(const char *path)
@@ -81,6 +81,9 @@ static const char *fix_path(const char *path, char *new_path, size_t new_path_si
     return path;
 }
 
+
+#ifndef DISABLE_OPEN
+typedef int (*orig_open_func_type)(const char *pathname, int flags, ...);
 
 int open(const char *pathname, int flags, ...)
 {
@@ -133,6 +136,10 @@ int open64(const char *pathname, int flags, ...)
         return orig_func(new_path, flags);
     }
 }
+#endif
+
+#ifndef DISABLE_OPENAT
+typedef int (*orig_openat_func_type)(int dirfd, const char *pathname, int flags, ...);
 
 int openat(int dirfd, const char *pathname, int flags, ...)
 {
@@ -185,6 +192,10 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
         return orig_func(dirfd, new_path, flags);
     }
 }
+#endif
+
+#ifndef DISABLE_FOPEN
+typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
 
 FILE * fopen ( const char * filename, const char * mode )
 {
@@ -219,6 +230,10 @@ FILE * fopen64 ( const char * filename, const char * mode )
 
     return orig_func(new_path, mode);
 }
+#endif
+
+#ifndef DISABLE_STAT
+typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
 
 int stat(const char *path, struct stat *buf)
 {
@@ -253,9 +268,11 @@ int lstat(const char *path, struct stat *buf)
 
     return orig_func(new_path, buf);
 }
+#endif
 
-#ifdef ENABLE_XSTAT
+#ifndef DISABLE_XSTAT
 typedef int (*orig_xstat64_func_type)(int ver, const char * path, struct stat64 * stat_buf);
+
 int __xstat64(int ver, const char * path, struct stat64 * stat_buf)
 {
 #ifdef DEBUG
@@ -291,6 +308,7 @@ int __lxstat64(int ver, const char * path, struct stat64 * stat_buf)
 }
 
 typedef int (*orig_xstat_func_type)(int ver, const char * path, struct stat * stat_buf);
+
 int __xstat(int ver, const char * path, struct stat * stat_buf)
 {
 #ifdef DEBUG
@@ -326,6 +344,9 @@ int __lxstat(int ver, const char * path, struct stat * stat_buf)
 }
 #endif
 
+#ifndef DISABLE_ACCESS
+typedef int (*orig_access_func_type)(const char *pathname, int mode);
+
 int access(const char *pathname, int mode)
 {
 #ifdef DEBUG
@@ -342,6 +363,10 @@ int access(const char *pathname, int mode)
 
     return orig_func(new_path, mode);
 }
+#endif
+
+#ifndef DISABLE_OPENDIR
+typedef DIR* (*orig_opendir_func_type)(const char *name);
 
 DIR *opendir(const char *name)
 {
@@ -359,3 +384,4 @@ DIR *opendir(const char *name)
 
     return orig_func(new_path);
 }
+#endif
