@@ -14,7 +14,7 @@
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
 static const char *path_map[][2] = {
-    { "/etc/ownCloud/", "/home/user1/.etc/ownCloud/" },
+    { "/etc/ownCloud", "/home/user1/.etc/ownCloud" },
 };
 
 __thread char *buffer = NULL;
@@ -27,8 +27,20 @@ typedef int (*orig_stat_func_type)(const char *path, struct stat *buf);
 typedef int (*orig_access_func_type)(const char *pathname, int mode);
 typedef DIR* (*orig_opendir_func_type)(const char *name);
 
-static int starts_with(const char *str, const char *prefix) {
-    return (strncmp(prefix, str, strlen(prefix)) == 0);
+int path_prefix_matches(const char *prefix, const char *path) {
+    size_t prefix_len = strlen(prefix);
+    while (prefix_len > 0 && prefix[prefix_len - 1] == '/') {
+        // If the prefix ends with a slash ("/example/dir/"), ignore the slash.
+        // Otherwise it would not match the dir itself ("/examle/dir"), e.g. in opendir().
+        prefix_len -= 1;
+    }
+    if (strncmp(prefix, path, prefix_len) == 0) {
+        // The prefix matches, but "/example/dir" would also match "/example/dirty/file"
+        // Thus we only return true if a slash or end-of-string follows the match.
+        char char_after_match = path[prefix_len];
+        return char_after_match == '/' || char_after_match == '\0';
+    }
+    return 0;
 }
 
 static char *get_buffer(int min_size) {
@@ -56,7 +68,7 @@ static const char *fix_path(const char *path)
     for (int i = 0; i < count; i++) {
         const char *prefix = path_map[i][0];
         const char *replace = path_map[i][1];
-        if (starts_with(path, prefix)) {
+        if (path_prefix_matches(prefix, path)) {
             const char *rest = path + strlen(prefix);
             char *new_path = get_buffer(strlen(path) + strlen(replace) - strlen(prefix));
             strcpy(new_path, replace);
