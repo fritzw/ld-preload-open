@@ -76,8 +76,10 @@ int open(const char *pathname, int flags, ...)
 
     const char *new_path = fix_path(pathname);
 
-    orig_open_func_type orig_func;
-    orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open");
+    static orig_open_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open");
+    }
 
     // If O_CREAT is used to create a file, the file access mode must be given.
     if (__OPEN_NEEDS_MODE(flags)) {
@@ -99,8 +101,10 @@ int open64(const char *pathname, int flags, ...)
 
     const char *new_path = fix_path(pathname);
 
-    orig_open_func_type orig_func;
-    orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open64");
+    static orig_open_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_open_func_type)dlsym(RTLD_NEXT, "open64");
+    }
 
     // If O_CREAT is used to create a file, the file access mode must be given.
     if (__OPEN_NEEDS_MODE(flags)) {
@@ -122,8 +126,10 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 
     const char *new_path = fix_path(pathname);
 
-    orig_openat_func_type orig_func;
-    orig_func = (orig_openat_func_type)dlsym(RTLD_NEXT, "openat");
+    static orig_openat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_openat_func_type)dlsym(RTLD_NEXT, "openat");
+    }
 
     // If O_CREAT is used to create a file, the file access mode must be given.
     if (__OPEN_NEEDS_MODE(flags)) {
@@ -145,8 +151,10 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
 
     const char *new_path = fix_path(pathname);
 
-    orig_openat_func_type orig_func;
-    orig_func = (orig_openat_func_type)dlsym(RTLD_NEXT, "openat64");
+    static orig_openat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_openat_func_type)dlsym(RTLD_NEXT, "openat64");
+    }
 
     // If O_CREAT is used to create a file, the file access mode must be given.
     if (__OPEN_NEEDS_MODE(flags)) {
@@ -168,8 +176,10 @@ FILE * fopen ( const char * filename, const char * mode )
 
     const char *new_path = fix_path(filename);
 
-    orig_fopen_func_type orig_func;
-    orig_func = (orig_fopen_func_type)dlsym(RTLD_NEXT, "fopen");
+    static orig_fopen_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fopen_func_type)dlsym(RTLD_NEXT, "fopen");
+    }
 
     return orig_func(new_path, mode);
 }
@@ -182,8 +192,10 @@ FILE * fopen64 ( const char * filename, const char * mode )
 
     const char *new_path = fix_path(filename);
 
-    orig_fopen_func_type orig_func;
-    orig_func = (orig_fopen_func_type)dlsym(RTLD_NEXT, "fopen64");
+    static orig_fopen_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fopen_func_type)dlsym(RTLD_NEXT, "fopen64");
+    }
 
     return orig_func(new_path, mode);
 }
@@ -196,8 +208,10 @@ int stat(const char *path, struct stat *buf)
 
     const char *new_path = fix_path(path);
 
-    orig_stat_func_type orig_func;
-    orig_func = (orig_stat_func_type)dlsym(RTLD_NEXT, "stat");
+    static orig_stat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_stat_func_type)dlsym(RTLD_NEXT, "stat");
+    }
 
     return orig_func(new_path, buf);
 }
@@ -210,8 +224,10 @@ int lstat(const char *path, struct stat *buf)
 
     const char *new_path = fix_path(path);
 
-    orig_stat_func_type orig_func;
-    orig_func = (orig_stat_func_type)dlsym(RTLD_NEXT, "lstat");
+    static orig_stat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_stat_func_type)dlsym(RTLD_NEXT, "lstat");
+    }
 
     return orig_func(new_path, buf);
 }
@@ -224,8 +240,10 @@ DIR *opendir(const char *name)
 
     const char *new_path = fix_path(name);
 
-    orig_opendir_func_type orig_func;
-    orig_func = (orig_opendir_func_type)dlsym(RTLD_NEXT, "opendir");
+    static orig_opendir_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_opendir_func_type)dlsym(RTLD_NEXT, "opendir");
+    }
 
     return orig_func(new_path);
 }
