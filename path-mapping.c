@@ -208,6 +208,7 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
 
 #ifndef DISABLE_FOPEN
 typedef FILE* (*orig_fopen_func_type)(const char *path, const char *mode);
+typedef FILE* (*orig_freopen_func_type)(const char *path, const char *mode, FILE *stream);
 
 FILE * fopen ( const char * filename, const char * mode )
 {
@@ -237,6 +238,21 @@ FILE * fopen64 ( const char * filename, const char * mode )
     }
 
     return orig_func(new_path, mode);
+}
+
+FILE * freopen (const char * filename, const char * mode, FILE *stream)
+{
+    debug_fprintf(stderr, "freopen(%s) called\n", filename);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+
+    static orig_freopen_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_freopen_func_type)dlsym(RTLD_NEXT, "freopen");
+    }
+
+    return orig_func(new_path, mode, stream);
 }
 #endif // DISABLE_FOPEN
 
