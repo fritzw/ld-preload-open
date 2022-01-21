@@ -31,6 +31,7 @@
 // #define DISABLE_OPENAT
 // #define DISABLE_FOPEN
 // #define DISABLE_STAT
+// #define DISABLE_FSTATAT
 // #define DISABLE_STATFS
 // #define DISABLE_XSTAT
 // #define DISABLE_ACCESS
@@ -272,7 +273,75 @@ int lstat(const char *path, struct stat *buf)
 
     return orig_func(new_path, buf);
 }
-#endif // DSIABLE_STAT
+#endif // DISABLE_STAT
+
+
+#ifndef DISABLE_FSTATAT
+typedef int (*orig_fstatat_func_type)(int dirfd, const char *pathname, struct stat *statbuf, int flags);
+typedef int (*orig_fstatat64_func_type)(int dirfd, const char *pathname, struct stat64 *statbuf, int flags);
+typedef int (*orig_fxstatat_func_type)(int ver, int dirfd, const char *pathname, struct stat *statbuf, int flags);
+typedef int (*orig_fxstatat64_func_type)(int ver, int dirfd, const char *pathname, struct stat64 *statbuf, int flags);
+
+int fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags)
+{
+    debug_fprintf(stderr, "fstatat(%s) called\n", pathname);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_fstatat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fstatat_func_type)dlsym(RTLD_NEXT, "fstatat");
+    }
+
+    return orig_func(dirfd, new_path, statbuf, flags);
+}
+
+int fstatat64(int dirfd, const char *pathname, struct stat64 *statbuf, int flags)
+{
+    debug_fprintf(stderr, "fstatat64(%s) called\n", pathname);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_fstatat64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fstatat64_func_type)dlsym(RTLD_NEXT, "fstatat64");
+    }
+
+    return orig_func(dirfd, new_path, statbuf, flags);
+}
+
+int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *statbuf, int flags)
+{
+    debug_fprintf(stderr, "__fxstatat(%s) called\n", pathname);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_fxstatat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fxstatat_func_type)dlsym(RTLD_NEXT, "__fxstatat");
+    }
+
+    return orig_func(ver, dirfd, new_path, statbuf, flags);
+}
+
+int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *statbuf, int flags)
+{
+    debug_fprintf(stderr, "__fxstatat64(%s) called\n", pathname);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(pathname, buffer, sizeof buffer);
+
+    static orig_fxstatat64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fxstatat64_func_type)dlsym(RTLD_NEXT, "__fxstatat64");
+    }
+
+    return orig_func(ver, dirfd, new_path, statbuf, flags);
+}
+#endif // DISABLE_FSTATAT
 
 
 #ifndef DISABLE_STATFS
