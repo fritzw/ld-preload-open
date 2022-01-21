@@ -1,14 +1,17 @@
 CFLAGS += -std=c99 -Wall
 
+all: path-mapping.so
+
 path-mapping.so: path-mapping.c
 	gcc $(CFLAGS) -shared -fPIC path-mapping.c -o path-mapping.so -ldl
 
 clean:
 	rm *.so
 
-TESTDIR?=/tmp
-test: path-mapping.c test-cases.c
-	src="$$PWD"; cd $(TESTDIR); gcc $(CFLAGS) "$$src/test-cases.c" "$$src/path-mapping.c" -ldl -o $(TESTDIR)/pathmapping-test
-	$(TESTDIR)/pathmapping-test
+TESTDIR?=/tmp/path-mapping
+test: path-mapping.c test/unit-tests.c
+	src="$$PWD"; mkdir -p $(TESTDIR); cd $(TESTDIR); gcc $(CFLAGS) "$$src/test/unit-tests.c" "$$src/path-mapping.c" -ldl -o $(TESTDIR)/unit-tests
+	$(TESTDIR)/unit-tests
+	test/integration-tests.sh
 
-.PHONY: test clean
+.PHONY: all test clean
