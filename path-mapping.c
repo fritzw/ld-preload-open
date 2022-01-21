@@ -40,6 +40,7 @@
 // #define DISABLE_READLINK
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
+// #define DISABLE_UNLINK
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -155,6 +156,7 @@ OVERRIDE_FUNCTION(2, 1, int, statvfs64, const char *, path, struct statvfs64 *, 
 
 #ifndef DISABLE_ACCESS
 OVERRIDE_FUNCTION(2, 1, int, access, const char *, pathname, int, mode)
+OVERRIDE_FUNCTION(4, 2, int, faccessat, int, dirfd, const char *, pathname, int, mode, int, flags)
 #endif // DISABLE_ACCESS
 
 
@@ -180,4 +182,10 @@ OVERRIDE_FUNCTION(3, 1, int, chown, const char *, pathname, uid_t, owner, gid_t,
 OVERRIDE_FUNCTION(3, 1, int, lchown, const char *, pathname, uid_t, owner, gid_t, group)
 OVERRIDE_FUNCTION(5, 2, int, fchownat, int, dirfd, const char *, pathname, uid_t, owner, gid_t, group, int, flags)
 #endif // DISABLE_CHOWN
+
+
+#ifndef DISABLE_UNLINK
+OVERRIDE_FUNCTION(1, 1, int, unlink, const char *, pathname)
+OVERRIDE_FUNCTION(3, 2, int, unlinkat, int, dirfd, const char *, pathname, int, flags)
+#endif // DISABLE_UNLINK
 

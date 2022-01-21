@@ -120,9 +120,18 @@ test_chmod() {
     teardown
 }
 
+test_rm() {
+    setup
+    LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" 2>../rm.strace
+    check_strace ../rm.strace
+    mkdir "$testdir/real/dir1" # Fails if rm did not remove dir1
+    teardown
+}
+
 CFLAGS='-D QUIET' make clean all || true
 
 test_cat
+test_rm
 test_find
 test_grep
 test_chmod
