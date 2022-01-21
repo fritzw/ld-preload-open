@@ -41,6 +41,7 @@
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
 // #define DISABLE_UNLINK
+// #define DISABLE_RENAME
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -190,4 +191,58 @@ OVERRIDE_FUNCTION(3, 2, int, unlinkat, int, dirfd, const char *, pathname, int, 
 OVERRIDE_FUNCTION(1, 1, int, rmdir, const char *, pathname)
 OVERRIDE_FUNCTION(1, 1, int, remove, const char *, pathname)
 #endif // DISABLE_UNLINK
+
+
+#ifndef DISABLE_RENAME
+typedef int (*orig_rename_func_type)(const char *oldpath, const char *newpath);
+int rename(const char *oldpath, const char *newpath)
+{
+    debug_fprintf(stderr, "rename(%s) called\n", pathname);
+
+    char buffer[MAX_PATH], buffer2[MAX_PATH];
+    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+
+    static orig_rename_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_rename_func_type)dlsym(RTLD_NEXT, "rename");
+    }
+
+    return orig_func(new_oldpath, new_newpath);
+}
+
+typedef int (*orig_renameat_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath);
+int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
+{
+    debug_fprintf(stderr, "renameat(%s) called\n", pathname);
+
+    char buffer[MAX_PATH], buffer2[MAX_PATH];
+    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+
+    static orig_renameat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_renameat_func_type)dlsym(RTLD_NEXT, "renameat");
+    }
+
+    return orig_func(olddirfd, new_oldpath, newdirfd, new_newpath);
+}
+
+typedef int (*orig_renameat2_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags);
+int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+{
+    debug_fprintf(stderr, "renameat2(%s) called\n", pathname);
+
+    char buffer[MAX_PATH], buffer2[MAX_PATH];
+    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+
+    static orig_renameat2_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_renameat2_func_type)dlsym(RTLD_NEXT, "renameat2");
+    }
+
+    return orig_func(olddirfd, new_oldpath, newdirfd, new_newpath, flags);
+}
+#endif // DISABLE_RENAME
 

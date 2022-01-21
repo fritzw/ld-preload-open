@@ -124,7 +124,16 @@ test_rm() {
     setup
     LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" 2>../rm.strace
     check_strace ../rm.strace
-    mkdir "$testdir/real/dir1" # Fails if rm did not remove dir1
+    test '!' -e "$testdir/real/dir1"
+    teardown
+}
+
+test_rename() {
+    setup
+    LD_PRELOAD="$lib" strace /usr/bin/mv "$testdir/virtual/dir1" "$testdir/virtual/dir1_renamed" 2>../rename.strace
+    check_strace ../rename.strace
+    test '!' -e "$testdir/real/dir1"
+    test -e "$testdir/real/dir1_renamed"
     teardown
 }
 
@@ -135,8 +144,9 @@ test_rm
 test_find
 test_grep
 test_chmod
+test_rename
 test_readlink
-test_thunar
+#test_thunar
 
 echo "ALL TESTS PASSED!"
 rm -rf "$tempdir"
