@@ -187,5 +187,7 @@ OVERRIDE_FUNCTION(5, 2, int, fchownat, int, dirfd, const char *, pathname, uid_t
 #ifndef DISABLE_UNLINK
 OVERRIDE_FUNCTION(1, 1, int, unlink, const char *, pathname)
 OVERRIDE_FUNCTION(3, 2, int, unlinkat, int, dirfd, const char *, pathname, int, flags)
+OVERRIDE_FUNCTION(1, 1, int, rmdir, const char *, pathname)
+OVERRIDE_FUNCTION(1, 1, int, remove, const char *, pathname)
 #endif // DISABLE_UNLINK
 
