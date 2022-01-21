@@ -363,6 +363,8 @@ int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *statbu
 #ifndef DISABLE_STATFS
 typedef int (*orig_statfs_func_type)(const char *path, struct statfs *buf);
 typedef int (*orig_statvfs_func_type)(const char *path, struct statvfs *buf);
+typedef int (*orig_statfs64_func_type)(const char *path, struct statfs64 *buf);
+typedef int (*orig_statvfs64_func_type)(const char *path, struct statvfs64 *buf);
 
 int statfs(const char *path, struct statfs *buf)
 {
@@ -389,6 +391,36 @@ int statvfs(const char *path, struct statvfs *buf)
     static orig_statvfs_func_type orig_func = NULL;
     if (orig_func == NULL) {
         orig_func = (orig_statvfs_func_type)dlsym(RTLD_NEXT, "statvfs");
+    }
+
+    return orig_func(new_path, buf);
+}
+
+int statfs64(const char *path, struct statfs64 *buf)
+{
+    debug_fprintf(stderr, "statfs64(%s) called\n", path);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_statfs64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_statfs64_func_type)dlsym(RTLD_NEXT, "statfs64");
+    }
+
+    return orig_func(new_path, buf);
+}
+
+int statvfs64(const char *path, struct statvfs64 *buf)
+{
+    debug_fprintf(stderr, "statvfs64(%s) called\n", path);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(path, buffer, sizeof buffer);
+
+    static orig_statvfs64_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_statvfs64_func_type)dlsym(RTLD_NEXT, "statvfs64");
     }
 
     return orig_func(new_path, buf);
