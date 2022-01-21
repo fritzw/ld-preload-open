@@ -111,11 +111,21 @@ test_grep() {
     teardown
 }
 
+test_chmod() {
+    setup
+    chmod 700 "$testdir/real/file0"
+    LD_PRELOAD="$lib" strace chmod 777 "$testdir/virtual/file0" >../chmod.out 2>../chmod.strace
+    check_strace ../chmod.strace
+    test "$(stat -c %a "$testdir/real/file0")" == 777
+    teardown
+}
+
 CFLAGS='-D QUIET' make clean all || true
 
 test_cat
 test_find
 test_grep
+test_chmod
 test_readlink
 test_thunar
 

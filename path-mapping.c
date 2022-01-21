@@ -8,6 +8,7 @@
 #include <stdarg.h> // va_start, va_arg
 #include <sys/vfs.h> // statfs
 #include <sys/statvfs.h> // statvfs
+#include <unistd.h> // uid_t, gid_t
 
 //#define DEBUG
 //#define QUIET
@@ -37,6 +38,8 @@
 // #define DISABLE_ACCESS
 // #define DISABLE_OPENDIR
 // #define DISABLE_READLINK
+// #define DISABLE_CHMOD
+// #define DISABLE_CHOWN
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -164,3 +167,17 @@ OVERRIDE_FUNCTION(1, 1, DIR *, opendir, const char *, name)
 OVERRIDE_FUNCTION(3, 1, ssize_t, readlink, const char *, pathname, char *, buf, size_t, bufsiz)
 OVERRIDE_FUNCTION(4, 2, ssize_t, readlinkat, int, dirfd, const char *, pathname, char *, buf, size_t, bufsiz)
 #endif // DISABLE_READLINK
+
+
+#ifndef DISABLE_CHMOD
+OVERRIDE_FUNCTION(2, 1, int, chmod, const char *, pathname, mode_t, mode)
+OVERRIDE_FUNCTION(4, 2, int, fchmodat, int, dirfd, const char *, pathname, mode_t, mode, int, flags)
+#endif // DISABLE_CHMOD
+
+
+#ifndef DISABLE_CHOWN
+OVERRIDE_FUNCTION(3, 1, int, chown, const char *, pathname, uid_t, owner, gid_t, group)
+OVERRIDE_FUNCTION(3, 1, int, lchown, const char *, pathname, uid_t, owner, gid_t, group)
+OVERRIDE_FUNCTION(5, 2, int, fchownat, int, dirfd, const char *, pathname, uid_t, owner, gid_t, group, int, flags)
+#endif // DISABLE_CHOWN
+
