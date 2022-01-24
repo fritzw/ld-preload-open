@@ -9,6 +9,7 @@
 #include <sys/vfs.h> // statfs
 #include <sys/statvfs.h> // statvfs
 #include <unistd.h> // uid_t, gid_t
+#include <malloc.h> // for execl
 
 //#define DEBUG
 //#define QUIET
@@ -191,6 +192,119 @@ OVERRIDE_FUNCTION(3, 2, int, unlinkat, int, dirfd, const char *, pathname, int, 
 OVERRIDE_FUNCTION(1, 1, int, rmdir, const char *, pathname)
 OVERRIDE_FUNCTION(1, 1, int, remove, const char *, pathname)
 #endif // DISABLE_UNLINK
+
+
+#ifndef DISABLE_EXEC
+OVERRIDE_FUNCTION(2, 1, int, execv, const char *, filename, char * const*, argv)
+OVERRIDE_FUNCTION(3, 1, int, execve, const char *, filename, char * const*, argv, char * const*, env)
+OVERRIDE_FUNCTION(2, 1, int, execvp, const char *, filename, char * const*, argv)
+
+int execl(const char *filename, const char *arg0, ...)
+{
+    debug_fprintf(stderr, "execl(%s) called\n", filename);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+
+    // Note: call execv, not execl, because we can't call varargs functions with an unknown number of args
+    static orig_execv_func_type execv_func = NULL;
+    if (execv_func == NULL) {
+        execv_func = (orig_execv_func_type)dlsym(RTLD_NEXT, "execv");
+    }
+
+    // count args
+    int argc = 1;
+    va_list args_list;
+    va_start(args_list, arg0);
+    while (va_arg(args_list, char *) != NULL) argc += 1;
+    va_end(args_list);
+
+    // extract args
+    const char **argv_buffer = malloc(sizeof(char *) * (argc + 1));
+    va_start(args_list, arg0);
+    argv_buffer[0] = arg0;
+    argc = 1;
+    char *arg = NULL;
+    while ((arg = va_arg(args_list, char *)) != NULL) {
+        argv_buffer[argc++] = arg;
+    }
+    va_end(args_list);
+    argv_buffer[argc] = NULL;
+
+    return execv_func(new_path, (char * const*)argv_buffer);
+}
+
+int execlp(const char *filename, const char *arg0, ...)
+{
+    debug_fprintf(stderr, "execlp(%s) called\n", filename);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+
+    // Note: call execvp, not execlp, because we can't call varargs functions with an unknown number of args
+    static orig_execvp_func_type execvp_func = NULL;
+    if (execvp_func == NULL) {
+        execvp_func = (orig_execvp_func_type)dlsym(RTLD_NEXT, "execvp");
+    }
+
+    // count args
+    int argc = 1;
+    va_list args_list;
+    va_start(args_list, arg0);
+    while (va_arg(args_list, char *) != NULL) argc += 1;
+    va_end(args_list);
+
+    // extract args
+    const char **argv_buffer = malloc(sizeof(char *) * (argc + 1));
+    va_start(args_list, arg0);
+    argv_buffer[0] = arg0;
+    argc = 1;
+    char *arg = NULL;
+    while ((arg = va_arg(args_list, char *)) != NULL) {
+        argv_buffer[argc++] = arg;
+    }
+    va_end(args_list);
+    argv_buffer[argc] = NULL;
+
+    return execvp_func(new_path, (char * const*)argv_buffer);
+}
+
+int execle(const char *filename, const char *arg0, ... /* , char *const env[] */)
+{
+    debug_fprintf(stderr, "execl(%s) called\n", filename);
+
+    char buffer[MAX_PATH];
+    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+
+    // Note: call execve, not execle, because we can't call varargs functions with an unknown number of args
+    static orig_execve_func_type execve_func = NULL;
+    if (execve_func == NULL) {
+        execve_func = (orig_execve_func_type)dlsym(RTLD_NEXT, "execve");
+    }
+
+    // count args
+    int argc = 1;
+    va_list args_list;
+    va_start(args_list, arg0);
+    while (va_arg(args_list, char *) != NULL) argc += 1;
+    va_end(args_list);
+
+    // extract args
+    const char **argv_buffer = malloc(sizeof(char *) * (argc + 1));
+    va_start(args_list, arg0);
+    argv_buffer[0] = arg0;
+    argc = 1;
+    char *arg = NULL;
+    while ((arg = va_arg(args_list, char *)) != NULL) {
+        argv_buffer[argc++] = arg;
+    }
+    char * const* env = va_arg(args_list, char * const*);
+    va_end(args_list);
+    argv_buffer[argc] = NULL;
+
+    return execve_func(new_path, (char * const*)argv_buffer, env);
+}
+#endif // DISABLE_EXEC
 
 
 #ifndef DISABLE_RENAME

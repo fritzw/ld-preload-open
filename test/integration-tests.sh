@@ -9,6 +9,8 @@ lib="$PWD/path-mapping.so"
 tempdir=/tmp/path-mapping
 testdir="$tempdir"/tests
 
+mkdir -p "$tempdir/out" "$tempdir/strace"
+
 failure() {
   local lineno=$1
   local msg=$2
@@ -137,6 +139,33 @@ test_rename() {
     teardown
 }
 
+test_bash_exec() {
+    setup
+    cp /usr/bin/echo "$testdir/real/dir1/"
+    LD_PRELOAD="$lib" strace bash -c "'$testdir/virtual/dir1/echo' arg1 arg2 arg3 arg4 arg5" >../bash_exec.out 2>../bash_exec.strace
+    check_strace ../bash_exec.strace
+    test x"$(cat ../bash_exec.out)" == x"arg1 arg2 arg3 arg4 arg5"
+    teardown
+}
+
+test_execl() {
+    setup
+    cp ../testtool-execl ../testtool-printenv real/
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 0 >../execl0.out 2>../execl0.strace
+    check_strace ../execl0.strace
+    test x"$(cat ../execl0.out)" == $'xTEST0=value0'
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 1 >../execl1.out 2>../execl1.strace
+    check_strace ../execl1.strace
+    test x"$(cat ../execl1.out)" == $'xarg1\nTEST0=value0'
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execlp "$testdir/virtual/testtool-printenv" 2 >../execlp2.out 2>../execlp2.strace
+    check_strace ../execlp2.strace
+    test x"$(cat ../execlp2.out)" == $'xarg1\narg2\nTEST0=value0'
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execle "$testdir/virtual/testtool-printenv" 3 >../execle3.out 2>../execle3.strace
+    check_strace ../execle3.strace
+    test x"$(cat ../execle3.out)" == $'xarg1\narg2\narg3\nTEST1=value1\nTEST2=value2'
+    teardown
+}
+
 CFLAGS='-D QUIET' make clean all || true
 
 test_cat
@@ -144,9 +173,11 @@ test_rm
 test_find
 test_grep
 test_chmod
+test_bash_exec
+test_execl
 test_rename
 test_readlink
 #test_thunar
 
 echo "ALL TESTS PASSED!"
-rm -rf "$tempdir"
+#rm -rf "$tempdir"
