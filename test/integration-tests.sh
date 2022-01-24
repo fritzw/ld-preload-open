@@ -9,8 +9,6 @@ lib="$PWD/path-mapping.so"
 tempdir=/tmp/path-mapping
 testdir="$tempdir"/tests
 
-mkdir -p "$tempdir/out" "$tempdir/strace"
-
 failure() {
   local lineno=$1
   local msg=$2
@@ -32,12 +30,26 @@ teardown() {
     rm -rf "$testdir"
 }
 
-check_strace() {
-    strace_file="$1"
+check_strace_file() {
+    program_name="$1"
+    strace_file="$tempdir/strace/$program_name"
     lines="$( grep virtual "$strace_file" | grep -vE '^execve|^write' || true )"
     if [[ "$lines" ]] ; then
         echo "Unmapped path in $strace_file:"
         echo "$lines"
+        return 1
+    fi
+}
+
+check_output_file() {
+    program_name="$1"
+    expected="$2"
+    out_file="$tempdir/out/$program_name"
+    output="$(cat "$out_file")"
+    if ! [[ "$output" == "$expected" ]]; then
+        echo "ERROR: output was not as expected:"
+        echo "'$output' != '$expected'"
+        return 1
     fi
 }
 
@@ -73,26 +85,25 @@ test_thunar() {
     fi
     setup
     cd real
-    touch file1  dir1/file2  dir1/dir2/file3  dir1/dir2/file4
-    LD_PRELOAD="$lib" strace Thunar "$testdir/virtual" 2> ../thunar.strace &
+    LD_PRELOAD="$lib" strace Thunar "$testdir/virtual" >../out/Thunar 2>../strace/Thunar &
     sleep 3; kill %1
-    check_strace ../thunar.strace
+    check_strace_file Thunar
     teardown
 }
 
 test_cat() {
     setup
-    LD_PRELOAD="$lib" strace cat "$testdir/virtual/file0" >../cat.out 2>../cat.strace
-    test x"$(cat ../cat.out)" == "xcontent0"
-    check_strace ../cat.strace
+    LD_PRELOAD="$lib" strace cat "$testdir/virtual/file0" >../out/cat 2>../strace/cat
+    check_output_file cat "content0"
+    check_strace_file cat
     teardown
 }
 
 test_find() {
     setup
-    LD_PRELOAD="$lib" strace find "$testdir/virtual" >../find.out 2>../find.strace
-    check_strace ../find.strace
-    test x"$(cat ../find.out)" == x"/tmp/path-mapping/tests/virtual
+    LD_PRELOAD="$lib" strace find "$testdir/virtual" >../out/find 2>../strace/find
+    check_strace_file find
+    check_output_file find "/tmp/path-mapping/tests/virtual
 /tmp/path-mapping/tests/virtual/file0
 /tmp/path-mapping/tests/virtual/dir1
 /tmp/path-mapping/tests/virtual/dir1/file1
@@ -104,9 +115,9 @@ test_find() {
 
 test_grep() {
     setup
-    LD_PRELOAD="$lib" strace grep -R content "$testdir/virtual" >../grep.out 2>../grep.strace
-    check_strace ../grep.strace
-    test x"$(cat ../grep.out)" == x"/tmp/path-mapping/tests/virtual/file0:content0
+    LD_PRELOAD="$lib" strace grep -R content "$testdir/virtual" >../out/grep 2>../strace/grep
+    check_strace_file grep
+    check_output_file grep "/tmp/path-mapping/tests/virtual/file0:content0
 /tmp/path-mapping/tests/virtual/dir1/file1:content1
 /tmp/path-mapping/tests/virtual/dir1/dir2/file3:content3
 /tmp/path-mapping/tests/virtual/dir1/dir2/file2:content2"
@@ -116,24 +127,24 @@ test_grep() {
 test_chmod() {
     setup
     chmod 700 "$testdir/real/file0"
-    LD_PRELOAD="$lib" strace chmod 777 "$testdir/virtual/file0" >../chmod.out 2>../chmod.strace
-    check_strace ../chmod.strace
+    LD_PRELOAD="$lib" strace chmod 777 "$testdir/virtual/file0" >../out/chmod 2>../strace/chmod
+    check_strace_file chmod
     test "$(stat -c %a "$testdir/real/file0")" == 777
     teardown
 }
 
 test_rm() {
     setup
-    LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" 2>../rm.strace
-    check_strace ../rm.strace
+    LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" >../out/rm 2>../strace/rm
+    check_strace_file rm
     test '!' -e "$testdir/real/dir1"
     teardown
 }
 
 test_rename() {
     setup
-    LD_PRELOAD="$lib" strace /usr/bin/mv "$testdir/virtual/dir1" "$testdir/virtual/dir1_renamed" 2>../rename.strace
-    check_strace ../rename.strace
+    LD_PRELOAD="$lib" strace /usr/bin/mv "$testdir/virtual/dir1" "$testdir/virtual/dir1_renamed" >../out/rename 2>../strace/rename
+    check_strace_file rename
     test '!' -e "$testdir/real/dir1"
     test -e "$testdir/real/dir1_renamed"
     teardown
@@ -142,31 +153,43 @@ test_rename() {
 test_bash_exec() {
     setup
     cp /usr/bin/echo "$testdir/real/dir1/"
-    LD_PRELOAD="$lib" strace bash -c "'$testdir/virtual/dir1/echo' arg1 arg2 arg3 arg4 arg5" >../bash_exec.out 2>../bash_exec.strace
-    check_strace ../bash_exec.strace
-    test x"$(cat ../bash_exec.out)" == x"arg1 arg2 arg3 arg4 arg5"
+    LD_PRELOAD="$lib" strace bash -c "'$testdir/virtual/dir1/echo' arg1 arg2 arg3 arg4 arg5" >../out/bash_exec 2>../strace/bash_exec
+    check_strace_file bash_exec
+    check_output_file bash_exec "arg1 arg2 arg3 arg4 arg5"
     teardown
 }
 
 test_execl() {
     setup
     cp ../testtool-execl ../testtool-printenv real/
-    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 0 >../execl0.out 2>../execl0.strace
-    check_strace ../execl0.strace
-    test x"$(cat ../execl0.out)" == $'xTEST0=value0'
-    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 1 >../execl1.out 2>../execl1.strace
-    check_strace ../execl1.strace
-    test x"$(cat ../execl1.out)" == $'xarg1\nTEST0=value0'
-    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execlp "$testdir/virtual/testtool-printenv" 2 >../execlp2.out 2>../execlp2.strace
-    check_strace ../execlp2.strace
-    test x"$(cat ../execlp2.out)" == $'xarg1\narg2\nTEST0=value0'
-    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execle "$testdir/virtual/testtool-printenv" 3 >../execle3.out 2>../execle3.strace
-    check_strace ../execle3.strace
-    test x"$(cat ../execle3.out)" == $'xarg1\narg2\narg3\nTEST1=value1\nTEST2=value2'
+
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 0 \
+        >../out/execl0 2>../strace/execl0
+    check_strace_file execl0
+    check_output_file execl0 $'TEST0=value0'
+
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execl "$testdir/virtual/testtool-printenv" 1 \
+        >../out/execl1 2>../strace/execl1
+    check_strace_file execl1
+    check_output_file execl1 $'arg1\nTEST0=value0'
+
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execlp "$testdir/virtual/testtool-printenv" 2 \
+        >../out/execlp2 2>../strace/execlp2
+    check_strace_file execlp2
+    check_output_file execlp2 $'arg1\narg2\nTEST0=value0'
+
+    LD_PRELOAD="$lib" strace "$testdir/virtual/testtool-execl" execle "$testdir/virtual/testtool-printenv" 3 \
+        >../out/execle3 2>../strace/execle3
+    check_strace_file execle3
+    check_output_file execle3 $'arg1\narg2\narg3\nTEST1=value1\nTEST2=value2'
+
     teardown
 }
 
 CFLAGS='-D QUIET' make clean all || true
+
+mkdir -p "$tempdir/out"
+mkdir -p "$tempdir/strace"
 
 test_cat
 test_rm
