@@ -101,7 +101,7 @@ test_ln() {
     teardown
 }
 
-test_thunar() {
+disabled_test_thunar() { # Disabled because slow and not really useful
     if ! which Thunar >/dev/null; then
         echo "Thunar not found, skipping test case"
         return
@@ -223,7 +223,7 @@ test_du() {
     teardown
 }
 
-test_df() {
+test_df() { # Tests realpath()
     setup
     expected="$(df -h "$testdir/real/")"  # in RAM, the available space can fluctuate by a few bytes. Hopefully the -h flag makes it robust enough to pass most of the time
     LD_PRELOAD="$lib" strace df -h "$testdir/virtual/" >../out/df 2>../strace/df
@@ -232,25 +232,19 @@ test_df() {
     teardown
 }
 
+# Compile a quiet version of the lib which does not printf diagnostic info
 CFLAGS='-D QUIET' make clean all || true
 
+# Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"
 
-test_cat
-test_rm
-test_find
-test_grep
-test_chmod
-test_bash_exec
-test_execl
-test_rename
-test_readlink
-test_readlink_f
-test_ln
-test_du
-test_df
-#test_thunar
+# Find and execute all declared functions starting with "test_" in a random order
+testcases="$(declare -F | cut -d " " -f 3- | grep '^test_' | shuf)"
+for cmd in $testcases; do
+    echo "$cmd"
+    $cmd
+done
 
 echo "ALL TESTS PASSED!"
 #rm -rf "$tempdir"
