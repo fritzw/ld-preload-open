@@ -37,6 +37,7 @@
 // #define DISABLE_STATFS
 // #define DISABLE_XSTAT
 // #define DISABLE_ACCESS
+// #define DISABLE_XATTR
 // #define DISABLE_OPENDIR
 // #define DISABLE_PATHCONF
 // #define DISABLE_REALPATH
@@ -163,6 +164,12 @@ OVERRIDE_FUNCTION(2, 1, int, statvfs64, const char *, path, struct statvfs64 *, 
 OVERRIDE_FUNCTION(2, 1, int, access, const char *, pathname, int, mode)
 OVERRIDE_FUNCTION(4, 2, int, faccessat, int, dirfd, const char *, pathname, int, mode, int, flags)
 #endif // DISABLE_ACCESS
+
+
+#ifndef DISABLE_XATTR
+OVERRIDE_FUNCTION(4, 1, ssize_t, getxattr, const char *, path, const char *, name, void *, value, size_t, size)
+OVERRIDE_FUNCTION(4, 1, ssize_t, lgetxattr, const char *, path, const char *, name, void *, value, size_t, size)
+#endif // DISABLE_XATTR
 
 
 #ifndef DISABLE_OPENDIR

@@ -232,6 +232,15 @@ test_df() { # Tests realpath()
     teardown
 }
 
+test_getfacl() { # Tests getxattr()
+    setup
+    expected="$(getfacl "$testdir/real/" 2>/dev/null | sed 's/real/virtual/')"  # in RAM, the available space can fluctuate by a few bytes. Hopefully the -h flag makes it robust enough to pass most of the time
+    LD_PRELOAD="$lib" strace getfacl "$testdir/virtual/" >../out/getfacl 2>../strace/getfacl
+    check_strace_file getfacl
+    check_output_file getfacl "$expected"
+    teardown
+}
+
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"
