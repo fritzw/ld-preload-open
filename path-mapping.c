@@ -38,6 +38,8 @@
 // #define DISABLE_XSTAT
 // #define DISABLE_ACCESS
 // #define DISABLE_OPENDIR
+// #define DISABLE_PATHCONF
+// #define DISABLE_REALPATH
 // #define DISABLE_READLINK
 // #define DISABLE_SYMLINKS
 // #define DISABLE_CHMOD
@@ -166,6 +168,17 @@ OVERRIDE_FUNCTION(4, 2, int, faccessat, int, dirfd, const char *, pathname, int,
 #ifndef DISABLE_OPENDIR
 OVERRIDE_FUNCTION(1, 1, DIR *, opendir, const char *, name)
 #endif // DISABLE_OPENDIR
+
+
+#ifndef DISABLE_PATHCONF
+OVERRIDE_FUNCTION(2, 1, long, pathconf, const char *, path, int, name)
+#endif // DISABLE_PATHCONF
+
+
+#ifndef DISABLE_REALPATH
+OVERRIDE_FUNCTION(2, 1, char *, realpath, const char *, path, char *, resolved_path)
+OVERRIDE_FUNCTION(1, 1, char *, canonicalize_file_name, const char *, path)
+#endif // DISABLE_REALPATH
 
 
 #ifndef DISABLE_READLINK

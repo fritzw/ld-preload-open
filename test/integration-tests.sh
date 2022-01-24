@@ -213,6 +213,25 @@ test_execl() {
     teardown
 }
 
+test_du() {
+    setup
+    LD_PRELOAD="$lib" strace du "$testdir/virtual/" >../out/du 2>../strace/du
+    check_strace_file du
+    check_output_file du "8	/tmp/path-mapping/tests/virtual/dir1/dir2
+12	/tmp/path-mapping/tests/virtual/dir1
+16	/tmp/path-mapping/tests/virtual/"
+    teardown
+}
+
+test_df() {
+    setup
+    expected="$(df -h "$testdir/real/")"  # in RAM, the available space can fluctuate by a few bytes. Hopefully the -h flag makes it robust enough to pass most of the time
+    LD_PRELOAD="$lib" strace df -h "$testdir/virtual/" >../out/df 2>../strace/df
+    check_strace_file df
+    check_output_file df "$expected"
+    teardown
+}
+
 CFLAGS='-D QUIET' make clean all || true
 
 mkdir -p "$tempdir/out"
@@ -229,6 +248,8 @@ test_rename
 test_readlink
 test_readlink_f
 test_ln
+test_du
+test_df
 #test_thunar
 
 echo "ALL TESTS PASSED!"
