@@ -33,7 +33,7 @@ teardown() {
 check_strace_file() {
     program_name="$1"
     strace_file="$tempdir/strace/$program_name"
-    lines="$( grep virtual "$strace_file" | grep -vE '^execve|^write' || true )"
+    lines="$( grep virtual "$strace_file" | grep -vE '^execve|^write|^Mapped Path:' || true )"
     if [[ "$lines" ]] ; then
         echo "Unmapped path in $strace_file:"
         echo "$lines"
@@ -59,7 +59,7 @@ assert_readlink() {
     readlink_path="$3"
     expected="$4"
     ln -sf "$link_content" "$create_link_path"
-    result="$(LD_PRELOAD="$lib" readlink -f "$readlink_path")"
+    result="$(LD_PRELOAD="$lib" readlink -f "$readlink_path" 2>/dev/null)"
     if ! [[ "$result" == "$expected" ]]; then
         echo "assert_readlink $@:"
         echo "'$result' != '$expected'"
@@ -78,7 +78,7 @@ test_readlink_f() {
     setup
     ln -s "dir2/file2" "$testdir/real/dir1/relativelink"
     ln -s "$testdir/real/dir1/dir2/file2" "$testdir/real/dir1/reallink"
-    LD_PRELOAD="$lib" ln -s "$testdir/virtual/dir1/dir2/file2" "$testdir/virtual/dir1/virtlink"
+    LD_PRELOAD="$lib" ln -s "$testdir/virtual/dir1/dir2/file2" "$testdir/virtual/dir1/virtlink" 2>/dev/null
     LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/relativelink" >../out/readlink_f_relativelink 2>../strace/readlink_f_relativelink
     LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/reallink" >../out/readlink_f_reallink 2>../strace/readlink_f_reallink
     LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/virtlink" >../out/readlink_f_virtlink 2>../strace/readlink_f_virtlink
@@ -231,9 +231,6 @@ test_df() { # Tests realpath()
     check_output_file df "$expected"
     teardown
 }
-
-# Compile a quiet version of the lib which does not printf diagnostic info
-CFLAGS='-D QUIET' make clean all || true
 
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"

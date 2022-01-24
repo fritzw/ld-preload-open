@@ -14,7 +14,7 @@ clean:
 	rm -f *.so
 	rm -rf $(TESTDIR)
 
-test: unit_tests
+test: path-mapping.so unit_tests testtools
 	for f in $(UNIT_TESTS); do $(TESTDIR)/$$f; done
 	test/integration-tests.sh
 
