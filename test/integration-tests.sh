@@ -63,7 +63,7 @@ assert_readlink() {
     if ! [[ "$result" == "$expected" ]]; then
         echo "assert_readlink $@:"
         echo "'$result' != '$expected'"
-        false
+        return 1
     fi
 }
 test_readlink() {
@@ -71,6 +71,33 @@ test_readlink() {
     assert_readlink "$testdir/real/link" "$testdir/real/target" "$testdir/real/link" "$testdir/real/target" # no mapping
     assert_readlink "$testdir/real/link" "$testdir/real/target" "$testdir/virtual/link" "$testdir/real/target" # link name mapped
     assert_readlink "$testdir/real/link" "$testdir/virtual/target" "$testdir/virtual/link" "$testdir/virtual/target" # link contents not mapped
+    teardown
+}
+
+test_readlink_f() {
+    setup
+    ln -s "dir2/file2" "$testdir/real/dir1/relativelink"
+    ln -s "$testdir/real/dir1/dir2/file2" "$testdir/real/dir1/reallink"
+    LD_PRELOAD="$lib" ln -s "$testdir/virtual/dir1/dir2/file2" "$testdir/virtual/dir1/virtlink"
+    LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/relativelink" >../out/readlink_f_relativelink 2>../strace/readlink_f_relativelink
+    LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/reallink" >../out/readlink_f_reallink 2>../strace/readlink_f_reallink
+    LD_PRELOAD="$lib" strace readlink -f "$testdir/virtual/dir1/virtlink" >../out/readlink_f_virtlink 2>../strace/readlink_f_virtlink
+    check_strace_file readlink_f_relativelink
+    check_strace_file readlink_f_reallink
+    #check_strace_file readlink_f_virtlink # False positive because link contains the word "virtual"
+    check_output_file readlink_f_relativelink "$testdir/virtual/dir1/dir2/file2"
+    check_output_file readlink_f_reallink "$testdir/real/dir1/dir2/file2"
+    check_output_file readlink_f_virtlink "$testdir/virtual/dir1/dir2/file2"
+    test x"$(cat "$testdir/real/dir1/relativelink")"
+    teardown
+}
+
+test_ln() {
+    setup
+    LD_PRELOAD="$lib" strace ln -s "linkcontent" "$testdir/virtual/dir1/link" 2>../strace/ln
+    readlink "$testdir/real/dir1/link" >../out/ln
+    check_strace_file ln
+    check_output_file ln "linkcontent"
     teardown
 }
 
@@ -200,6 +227,8 @@ test_bash_exec
 test_execl
 test_rename
 test_readlink
+test_readlink_f
+test_ln
 #test_thunar
 
 echo "ALL TESTS PASSED!"

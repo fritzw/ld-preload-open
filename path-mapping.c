@@ -39,6 +39,7 @@
 // #define DISABLE_ACCESS
 // #define DISABLE_OPENDIR
 // #define DISABLE_READLINK
+// #define DISABLE_SYMLINKS
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
 // #define DISABLE_UNLINK
@@ -171,6 +172,12 @@ OVERRIDE_FUNCTION(1, 1, DIR *, opendir, const char *, name)
 OVERRIDE_FUNCTION(3, 1, ssize_t, readlink, const char *, pathname, char *, buf, size_t, bufsiz)
 OVERRIDE_FUNCTION(4, 2, ssize_t, readlinkat, int, dirfd, const char *, pathname, char *, buf, size_t, bufsiz)
 #endif // DISABLE_READLINK
+
+
+#ifndef DISABLE_SYMLINK
+OVERRIDE_FUNCTION(2, 2, int, symlink, const char *, target, const char *, linkpath)
+OVERRIDE_FUNCTION(3, 3, int, symlinkat, const char *, target, int, newdirfd, const char *, linkpath)
+#endif // DISABLE_SYMLINK
 
 
 #ifndef DISABLE_CHMOD

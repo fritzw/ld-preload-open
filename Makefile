@@ -14,7 +14,7 @@ clean:
 	rm -f *.so
 	rm -rf $(TESTDIR)
 
-test: unit_tests testtools
+test: unit_tests
 	for f in $(UNIT_TESTS); do $(TESTDIR)/$$f; done
 	test/integration-tests.sh
 
