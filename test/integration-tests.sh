@@ -176,6 +176,13 @@ test_bash_exec() {
     check_output_file bash_exec "arg1 arg2 arg3 arg4 arg5"
 }
 
+test_bash_cd() { # Test chdir()
+    setup
+    LD_PRELOAD="$lib" strace bash -c "ls; cd virtual; ls; cd dir1; ls" >../out/bash_cd 2>../strace/bash_cd
+    check_strace_file bash_cd
+    check_output_file bash_cd $'real\ndir1\nfile0\ndir2\nfile1'
+}
+
 test_execl() {
     setup
     cp ../testtool-execl ../testtool-printenv real/

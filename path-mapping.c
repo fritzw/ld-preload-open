@@ -32,6 +32,7 @@
 // #define DISABLE_OPEN
 // #define DISABLE_OPENAT
 // #define DISABLE_FOPEN
+// #define DISABLE_CHDIR
 // #define DISABLE_STAT
 // #define DISABLE_FSTATAT
 // #define DISABLE_STATFS
@@ -128,6 +129,11 @@ OVERRIDE_FUNCTION(2, 1, FILE*, fopen, const char *, filename, const char *, mode
 OVERRIDE_FUNCTION(2, 1, FILE*, fopen64, const char *, filename, const char *, mode)
 OVERRIDE_FUNCTION(3, 1, FILE*, freopen, const char *, filename, const char *, mode, FILE *, stream)
 #endif // DISABLE_FOPEN
+
+
+#ifndef DISABLE_CHDIR
+OVERRIDE_FUNCTION(1, 1, int, chdir, const char *, path)
+#endif // DISABLE_CHDIR
 
 
 #ifndef DISABLE_STAT
