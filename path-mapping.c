@@ -45,6 +45,7 @@
 // #define DISABLE_ACCESS
 // #define DISABLE_XATTR
 // #define DISABLE_OPENDIR
+// #define DISABLE_MKDIR
 // #define DISABLE_PATHCONF
 // #define DISABLE_REALPATH
 // #define DISABLE_READLINK
@@ -192,6 +193,11 @@ OVERRIDE_FUNCTION(4, 1, ssize_t, lgetxattr, const char *, path, const char *, na
 #ifndef DISABLE_OPENDIR
 OVERRIDE_FUNCTION(1, 1, DIR *, opendir, const char *, name)
 #endif // DISABLE_OPENDIR
+
+
+#ifndef DISABLE_MKDIR
+OVERRIDE_FUNCTION(2, 1, int, mkdir, const char *, pathname, mode_t, mode)
+#endif // DISABLE_MKDIR
 
 
 #ifndef DISABLE_FTW

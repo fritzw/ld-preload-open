@@ -251,6 +251,14 @@ test_mkfifo() {
     check_output_file mkfifo "fifo"
 }
 
+test_mkdir() {
+    setup
+    LD_PRELOAD="$lib" strace mkdir "$testdir/virtual/dir1/newdir" 2>../strace/mkdir
+    stat -c %F real/dir1/newdir >../out/mkdir
+    check_strace_file mkdir
+    check_output_file mkdir "directory"
+}
+
 test_ftw() {
     setup
     LD_PRELOAD="$lib" strace -k ../testtool-ftw "$testdir/virtual/dir1" >../out/ftw 2>../strace/ftw
