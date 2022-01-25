@@ -33,7 +33,7 @@
 
 #define error_fprintf fprintf // always print errors
 
-// Enable or disable specific overrides (always includes the 64 version if applicable)
+// Enable or disable specific overrides (always includes different variants and the 64 version if applicable)
 // #define DISABLE_OPEN
 // #define DISABLE_OPENAT
 // #define DISABLE_FOPEN
@@ -46,6 +46,8 @@
 // #define DISABLE_XATTR
 // #define DISABLE_OPENDIR
 // #define DISABLE_MKDIR
+// #define DISABLE_FTW
+// #define DISABLE_FTS
 // #define DISABLE_PATHCONF
 // #define DISABLE_REALPATH
 // #define DISABLE_READLINK
@@ -56,6 +58,7 @@
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
 // #define DISABLE_UNLINK
+// #define DISABLE_EXEC
 // #define DISABLE_RENAME
 // #define DISABLE_LINK
 
@@ -351,7 +354,9 @@ int execl(const char *filename, const char *arg0, ...)
     va_end(args_list);
     argv_buffer[argc] = NULL;
 
-    return execv_func(new_path, (char * const*)argv_buffer);
+    int result = execv_func(new_path, (char * const*)argv_buffer);
+    free(argv_buffer); // We ONLY reach this if exec fails, so we need to clean up
+    return result;
 }
 
 int execlp(const char *filename, const char *arg0, ...)
@@ -386,7 +391,9 @@ int execlp(const char *filename, const char *arg0, ...)
     va_end(args_list);
     argv_buffer[argc] = NULL;
 
-    return execvp_func(new_path, (char * const*)argv_buffer);
+    int result = execvp_func(new_path, (char * const*)argv_buffer);
+    free(argv_buffer); // We ONLY reach this if exec fails, so we need to clean up
+    return result;
 }
 
 int execle(const char *filename, const char *arg0, ... /* , char *const env[] */)
@@ -422,7 +429,9 @@ int execle(const char *filename, const char *arg0, ... /* , char *const env[] */
     va_end(args_list);
     argv_buffer[argc] = NULL;
 
-    return execve_func(new_path, (char * const*)argv_buffer, env);
+    int result = execve_func(new_path, (char * const*)argv_buffer, env);
+    free(argv_buffer); // We ONLY reach this if exec fails, so we need to clean up
+    return result;
 }
 #endif // DISABLE_EXEC
 
