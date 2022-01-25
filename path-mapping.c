@@ -89,6 +89,8 @@ int path_prefix_matches(const char *prefix, const char *path)
 // Check if path matches any defined prefix, and if so, replace it with its substitution
 static const char *fix_path(const char *path, char *new_path, size_t new_path_size)
 {
+    if (path == NULL) return path;
+
     int count = (sizeof path_map) / (sizeof *path_map); // Array length
     for (int i = 0; i < count; i++) {
         const char *prefix = path_map[i][0];
