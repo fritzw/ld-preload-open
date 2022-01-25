@@ -34,7 +34,7 @@ teardown() {
 check_strace_file() {
     program_name="$1"
     strace_file="$tempdir/strace/$program_name"
-    lines="$( grep virtual "$strace_file" | grep -vE '^execve|^write|^Mapped Path:' || true )"
+    lines="$( grep virtual "$strace_file" | grep -vE '^execve|^write|^Mapped Path:|PATH_MAPPING: ' || true )"
     if [[ "$lines" ]] ; then
         echo "Unmapped path in $strace_file:"
         echo "$lines"

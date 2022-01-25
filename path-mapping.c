@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h> // exit
 #include <dlfcn.h> // dlsym
 #include <fcntl.h> // stat
 #include <dirent.h> // DIR*
@@ -15,6 +16,7 @@
 #include <sys/types.h> // dev_t
 #include <ftw.h> // ftw
 #include <fts.h> // fts
+#include <assert.h>
 
 //#define DEBUG
 //#define QUIET
@@ -64,10 +66,83 @@
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
-static const char *path_map[][2] = {
-    { "/etc/ownCloud", "/home/user1/.etc/ownCloud" },
+static const char *default_path_map[][2] = {
     { "/tmp/path-mapping/tests/virtual", "/tmp/path-mapping/tests/real" },
 };
+
+static const char *(*path_map)[2] = NULL;
+static char *path_map_buffer = NULL;
+static int path_map_length = 0;
+
+__attribute__((constructor))
+static void path_mapping_init()
+{
+    if (path_map != NULL) return;
+
+    // Check if environment variable is set
+    const char *env_string = getenv("PATH_MAPPING");
+    if (env_string == NULL) {
+        path_map = default_path_map;
+        path_map_length = (sizeof default_path_map) / (sizeof default_path_map[0]);
+        for (int i = 0; i < path_map_length; i++) {
+            info_fprintf(stderr, "PATH_MAPPING: %s => %s\n", path_map[i][0], path_map[i][1]);
+        }
+        return;
+    }
+
+    // Allocate a buffer to store the entries of the map in one big block, separated by null bytes
+    size_t buffersize = strlen(env_string) + 1;
+    path_map_buffer = malloc(buffersize);
+    if (path_map_buffer == NULL) {
+        error_fprintf(stderr, "PATH_MAPPING out of memory\n");
+        exit(255);
+    }
+    strncpy(path_map_buffer, env_string, buffersize);
+    path_map_buffer[buffersize] = '\0';
+
+    // Count the number of separators ':' to determine the size of the array of pointers
+    int n_segments = 1;
+    for (int i = 0; env_string[i]; i++) {
+        if (env_string[i] == ':') n_segments++;
+    }
+    if (n_segments % 2 != 0) {
+        error_fprintf(stderr, "PATH_MAPPING must have an even number of parts, not %d\n", n_segments);
+        exit(255);
+    }
+
+    // Allocate memory for the actual array of pointers to the map entries
+    path_map = malloc(n_segments * 2 * sizeof(char*));
+    if (path_map == NULL) {
+        error_fprintf(stderr, "PATH_MAPPING out of memory\n");
+        exit(255);
+    }
+
+    // Split the large string buffer into smaller strings by replacing ':' with null bytes
+    char **linear_path_map = (char **)path_map;
+    int linear_index = 0;
+    linear_path_map[linear_index++] = path_map_buffer;
+    for (int i = 0; path_map_buffer[i]; i++) {
+        if (path_map_buffer[i] == ':') {
+            path_map_buffer[i] = '\0';
+            linear_path_map[linear_index++] = &(path_map_buffer[i+1]);
+        }
+    }
+    assert(linear_index == n_segments);
+    path_map_length = linear_index / 2;
+
+    for (int i = 0; i < path_map_length; i++) {
+        info_fprintf(stderr, "PATH_MAPPING: %s => %s\n", path_map[i][0], path_map[i][1]);
+    }
+}
+
+__attribute__((destructor))
+static void path_mapping_deinit()
+{
+    if (path_map != default_path_map) {
+        free(path_map);
+    }
+    free(path_map_buffer);
+}
 
 #ifndef MAX_PATH
 #define MAX_PATH 4096
@@ -103,8 +178,7 @@ static const char *fix_path(const char *path, char *new_path, size_t new_path_si
 {
     if (path == NULL) return path;
 
-    int count = (sizeof path_map) / (sizeof *path_map); // Array length
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < path_map_length; i++) {
         const char *prefix = path_map[i][0];
         if (path_prefix_matches(prefix, path)) {
             const char *replace = path_map[i][1];
