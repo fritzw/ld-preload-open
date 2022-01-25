@@ -243,6 +243,14 @@ test_getfacl() { # Tests getxattr()
     check_output_file getfacl "$expected"
 }
 
+test_mkfifo() {
+    setup
+    LD_PRELOAD="$lib" strace mkfifo "$testdir/virtual/dir1/fifo" 2>../strace/mkfifo
+    stat -c %F real/dir1/fifo >../out/mkfifo
+    check_strace_file mkfifo
+    check_output_file mkfifo "fifo"
+}
+
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"

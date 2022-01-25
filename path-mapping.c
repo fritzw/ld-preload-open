@@ -12,6 +12,7 @@
 #include <malloc.h> // for execl
 #include <utime.h> // utimebuf
 #include <sys/time.h> // struct timeval
+#include <sys/types.h> // dev_t
 
 //#define DEBUG
 //#define QUIET
@@ -45,7 +46,9 @@
 // #define DISABLE_PATHCONF
 // #define DISABLE_REALPATH
 // #define DISABLE_READLINK
-// #define DISABLE_SYMLINKS
+// #define DISABLE_SYMLINK
+// #define DISABLE_MKFIFO
+// #define DISABLE_MKNOD
 // #define DISABLE_UTIME
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
@@ -210,6 +213,16 @@ OVERRIDE_FUNCTION(4, 2, ssize_t, readlinkat, int, dirfd, const char *, pathname,
 OVERRIDE_FUNCTION(2, 2, int, symlink, const char *, target, const char *, linkpath)
 OVERRIDE_FUNCTION(3, 3, int, symlinkat, const char *, target, int, newdirfd, const char *, linkpath)
 #endif // DISABLE_SYMLINK
+
+
+#ifndef DISABLE_MKFIFO
+OVERRIDE_FUNCTION(2, 1, int, mkfifo, const char *, filename, mode_t, mode)
+#endif // DISABLE_MKFIFO
+
+
+#ifndef DISABLE_MKNOD
+OVERRIDE_FUNCTION(3, 1, int, mknod, const char *, filename, mode_t, mode, dev_t, dev)
+#endif // DISABLE_MKNOD
 
 
 #ifndef DISABLE_UTIME
