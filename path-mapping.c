@@ -13,6 +13,7 @@
 #include <utime.h> // utimebuf
 #include <sys/time.h> // struct timeval
 #include <sys/types.h> // dev_t
+#include <ftw.h> // ftw
 
 //#define DEBUG
 //#define QUIET
@@ -190,6 +191,14 @@ OVERRIDE_FUNCTION(4, 1, ssize_t, lgetxattr, const char *, path, const char *, na
 #ifndef DISABLE_OPENDIR
 OVERRIDE_FUNCTION(1, 1, DIR *, opendir, const char *, name)
 #endif // DISABLE_OPENDIR
+
+
+#ifndef DISABLE_FTW
+OVERRIDE_FUNCTION(3, 1, int, ftw, const char *, filename, __ftw_func_t, func, int, descriptors)
+OVERRIDE_FUNCTION(4, 1, int, nftw, const char *, filename, __nftw_func_t, func, int, descriptors, int, flags)
+OVERRIDE_FUNCTION(3, 1, int, ftw64, const char *, filename, __ftw64_func_t, func, int, descriptors)
+OVERRIDE_FUNCTION(4, 1, int, nftw64, const char *, filename, __nftw64_func_t, func, int, descriptors, int, flags)
+#endif // DISABLE_FTW
 
 
 #ifndef DISABLE_PATHCONF

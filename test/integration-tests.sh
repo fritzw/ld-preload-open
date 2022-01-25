@@ -251,6 +251,28 @@ test_mkfifo() {
     check_output_file mkfifo "fifo"
 }
 
+test_ftw() {
+    setup
+    LD_PRELOAD="$lib" strace -k ../testtool-ftw "$testdir/virtual/dir1" >../out/ftw 2>../strace/ftw
+    check_strace_file ftw
+    check_output_file ftw "/tmp/path-mapping/tests/real/dir1
+/tmp/path-mapping/tests/real/dir1/file1
+/tmp/path-mapping/tests/real/dir1/dir2
+/tmp/path-mapping/tests/real/dir1/dir2/file3
+/tmp/path-mapping/tests/real/dir1/dir2/file2"
+}
+
+test_nftw() {
+    setup
+    LD_PRELOAD="$lib" strace -k ../testtool-nftw "$testdir/virtual/dir1" >../out/nftw 2>../strace/nftw
+    check_strace_file nftw
+    check_output_file nftw "/tmp/path-mapping/tests/real/dir1
+/tmp/path-mapping/tests/real/dir1/file1
+/tmp/path-mapping/tests/real/dir1/dir2
+/tmp/path-mapping/tests/real/dir1/dir2/file3
+/tmp/path-mapping/tests/real/dir1/dir2/file2"
+}
+
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"

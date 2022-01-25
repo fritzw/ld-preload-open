@@ -2,7 +2,7 @@ CFLAGS += -std=c99 -Wall
 
 SRCDIR = $(CURDIR)
 TESTDIR ?= /tmp/path-mapping
-TESTTOOLS = testtool-execl testtool-printenv testtool-utime
+TESTTOOLS = testtool-execl testtool-printenv testtool-utime testtool-ftw testtool-nftw
 UNIT_TESTS = test-pathmatching
 
 all: path-mapping.so testtools unit_tests
