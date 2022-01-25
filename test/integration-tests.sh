@@ -273,6 +273,15 @@ test_nftw() {
 /tmp/path-mapping/tests/real/dir1/dir2/file2"
 }
 
+test_fts() {
+    setup
+    mkdir -p real/dir1/dir4
+    echo content4 > real/dir1/dir4/file4
+    LD_PRELOAD="$lib" strace -k ../testtool-fts "$testdir/virtual/dir1/dir2" "$testdir/virtual/dir1/dir4" >../out/fts 2>../strace/fts
+    check_strace_file fts
+    check_output_file fts $'dir2\nfile2\nfile3\ndir2\ndir4\nfile4\ndir4'
+}
+
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"

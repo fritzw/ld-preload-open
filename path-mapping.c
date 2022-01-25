@@ -14,6 +14,7 @@
 #include <sys/time.h> // struct timeval
 #include <sys/types.h> // dev_t
 #include <ftw.h> // ftw
+#include <fts.h> // fts
 
 //#define DEBUG
 //#define QUIET
@@ -199,6 +200,49 @@ OVERRIDE_FUNCTION(4, 1, int, nftw, const char *, filename, __nftw_func_t, func, 
 OVERRIDE_FUNCTION(3, 1, int, ftw64, const char *, filename, __ftw64_func_t, func, int, descriptors)
 OVERRIDE_FUNCTION(4, 1, int, nftw64, const char *, filename, __nftw64_func_t, func, int, descriptors, int, flags)
 #endif // DISABLE_FTW
+
+
+#ifndef DISABLE_FTS
+typedef int (*fts_compare_func_t)(const FTSENT **, const FTSENT **);
+typedef FTS* (*orig_fts_open_func_type)(char * const *path_argv, int options, fts_compare_func_t compare);
+FTS *fts_open(char * const *path_argv, int options, fts_compare_func_t compare)
+{
+    if (path_argv[0] == NULL) return NULL;
+    debug_fprintf(stderr, "fts_open(%s) called\n", path_argv[0]);
+
+    int argc;
+    for (argc = 0; path_argv[argc] != NULL; argc++) {} // count number of paths in argument array
+
+    char **buffers = malloc((argc + 1) * sizeof(char *));
+    const char **new_paths = malloc((argc + 1) * sizeof(char *));
+    for (int i = 0; i < argc; i++) {
+        buffers[i] = malloc(MAX_PATH + 1);
+        if (buffers[i] == NULL) {
+            for (int j = 0; j < i; j++) {
+                free(buffers[j]); // cleanup on error
+            }
+            free(buffers);
+            free(new_paths);
+            return NULL;
+        }
+        new_paths[i] = fix_path(path_argv[i], buffers[i], MAX_PATH);
+    }
+    new_paths[argc] = NULL; // terminating null pointer
+
+    static orig_fts_open_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_fts_open_func_type)dlsym(RTLD_NEXT, "fts_open");
+    }
+
+    FTS *result = orig_func((char * const *)new_paths, options, compare);
+    for (int i = 0; i < argc; i++) {
+        free(buffers[i]);
+    }
+    free(buffers);
+    free(new_paths);
+    return result;
+}
+#endif // DISABLE_FTS
 
 
 #ifndef DISABLE_PATHCONF
