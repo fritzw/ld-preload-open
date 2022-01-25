@@ -16,7 +16,7 @@ clean:
 
 test: path-mapping.so unit_tests testtools
 	for f in $(UNIT_TESTS); do $(TESTDIR)/$$f; done
-	test/integration-tests.sh
+	TESTDIR="$(TESTDIR)" test/integration-tests.sh
 
 unit_tests: $(addprefix $(TESTDIR)/, $(UNIT_TESTS))
 
