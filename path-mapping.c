@@ -219,20 +219,27 @@ FTS *fts_open(char * const *path_argv, int options, fts_compare_func_t compare)
     if (path_argv[0] == NULL) return NULL;
     debug_fprintf(stderr, "fts_open(%s) called\n", path_argv[0]);
 
-    int argc;
+    FTS *result = NULL;
+    int argc = 0;
+    const char **new_paths;
+    char **buffers;
+
     for (argc = 0; path_argv[argc] != NULL; argc++) {} // count number of paths in argument array
 
-    char **buffers = malloc((argc + 1) * sizeof(char *));
-    const char **new_paths = malloc((argc + 1) * sizeof(char *));
+    buffers = malloc((argc + 1) * sizeof(char *));
+    if (buffers == NULL) {
+        goto _fts_open_return;
+    }
+    for (int i = 0; i < argc; i++) { buffers[i] = NULL; } // Initialize for free() in case of failure
+
+    new_paths = malloc((argc + 1) * sizeof(char *));
+    if (new_paths == NULL) {
+        goto _fts_open_cleanup_buffers;
+    }
     for (int i = 0; i < argc; i++) {
         buffers[i] = malloc(MAX_PATH + 1);
         if (buffers[i] == NULL) {
-            for (int j = 0; j < i; j++) {
-                free(buffers[j]); // cleanup on error
-            }
-            free(buffers);
-            free(new_paths);
-            return NULL;
+            goto _fts_open_cleanup;
         }
         new_paths[i] = fix_path(path_argv[i], buffers[i], MAX_PATH);
     }
@@ -243,12 +250,16 @@ FTS *fts_open(char * const *path_argv, int options, fts_compare_func_t compare)
         orig_func = (orig_fts_open_func_type)dlsym(RTLD_NEXT, "fts_open");
     }
 
-    FTS *result = orig_func((char * const *)new_paths, options, compare);
+    result = orig_func((char * const *)new_paths, options, compare);
+
+_fts_open_cleanup:
     for (int i = 0; i < argc; i++) {
         free(buffers[i]);
     }
-    free(buffers);
     free(new_paths);
+_fts_open_cleanup_buffers:
+    free(buffers);
+_fts_open_return:
     return result;
 }
 #endif // DISABLE_FTS
