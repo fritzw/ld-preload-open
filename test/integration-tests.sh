@@ -153,6 +153,15 @@ test_chmod() {
     test "$(stat -c %a "$testdir/real/file0")" == 777
 }
 
+test_utime() {
+    setup
+    LD_PRELOAD="$lib" strace ../testtool-utime "$testdir/virtual/dir1/file1" 2>../strace/utime
+    chmod 700 real/dir1/file1
+    stat -c %X:%Y "real/dir1/file1" >../out/utime
+    check_strace_file utime
+    check_output_file utime '200000000:100000000'
+}
+
 test_rm() {
     setup
     LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" >../out/rm 2>../strace/rm

@@ -10,6 +10,8 @@
 #include <sys/statvfs.h> // statvfs
 #include <unistd.h> // uid_t, gid_t
 #include <malloc.h> // for execl
+#include <utime.h> // utimebuf
+#include <sys/time.h> // struct timeval
 
 //#define DEBUG
 //#define QUIET
@@ -44,6 +46,7 @@
 // #define DISABLE_REALPATH
 // #define DISABLE_READLINK
 // #define DISABLE_SYMLINKS
+// #define DISABLE_UTIME
 // #define DISABLE_CHMOD
 // #define DISABLE_CHOWN
 // #define DISABLE_UNLINK
@@ -207,6 +210,15 @@ OVERRIDE_FUNCTION(4, 2, ssize_t, readlinkat, int, dirfd, const char *, pathname,
 OVERRIDE_FUNCTION(2, 2, int, symlink, const char *, target, const char *, linkpath)
 OVERRIDE_FUNCTION(3, 3, int, symlinkat, const char *, target, int, newdirfd, const char *, linkpath)
 #endif // DISABLE_SYMLINK
+
+
+#ifndef DISABLE_UTIME
+OVERRIDE_FUNCTION(2, 1, int, utime, const char *, filename, const struct utimbuf *, times)
+OVERRIDE_FUNCTION(2, 1, int, utimes, const char *, filename, const struct timeval *, tvp)
+OVERRIDE_FUNCTION(2, 1, int, lutime, const char *, filename, const struct utimbuf *, tvp)
+OVERRIDE_FUNCTION(4, 2, int, utimensat, int, dirfd, const char *, pathname, const struct timespec *, times, int, flags)
+OVERRIDE_FUNCTION(3, 2, int, futimesat, int, dirfd, const char *, pathname, const struct timeval *, times)
+#endif // DISABLE_UTIME
 
 
 #ifndef DISABLE_CHMOD
