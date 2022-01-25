@@ -48,6 +48,7 @@
 // #define DISABLE_CHOWN
 // #define DISABLE_UNLINK
 // #define DISABLE_RENAME
+// #define DISABLE_LINK
 
 // List of path pairs. Paths beginning with the first item will be
 // translated by replacing the matching part with the second item.
@@ -393,3 +394,40 @@ int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpa
 }
 #endif // DISABLE_RENAME
 
+
+#ifndef DISABLE_LINK
+typedef int (*orig_link_func_type)(const char *oldpath, const char *newpath);
+int link(const char *oldpath, const char *newpath)
+{
+    debug_fprintf(stderr, "link(%s) called\n", pathname);
+
+    char buffer[MAX_PATH], buffer2[MAX_PATH];
+    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+
+    static orig_link_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_link_func_type)dlsym(RTLD_NEXT, "link");
+    }
+
+    return orig_func(new_oldpath, new_newpath);
+}
+
+typedef int (*orig_linkat_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
+int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
+{
+    debug_fprintf(stderr, "linkat(%s) called\n", pathname);
+
+    char buffer[MAX_PATH], buffer2[MAX_PATH];
+    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+
+    static orig_linkat_func_type orig_func = NULL;
+    if (orig_func == NULL) {
+        orig_func = (orig_linkat_func_type)dlsym(RTLD_NEXT, "linkat");
+    }
+
+    return orig_func(olddirfd, new_oldpath, newdirfd, new_newpath, flags);
+}
+
+#endif // DISABLE_LINK
