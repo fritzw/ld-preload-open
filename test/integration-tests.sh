@@ -17,6 +17,7 @@ failure() {
 trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
 
 setup() {
+    teardown
     mkdir -p "$testdir/real"; cd "$testdir/real"
     mkdir -p dir1/dir2
     echo content0 >file0
@@ -71,7 +72,6 @@ test_readlink() {
     assert_readlink "$testdir/real/link" "$testdir/real/target" "$testdir/real/link" "$testdir/real/target" # no mapping
     assert_readlink "$testdir/real/link" "$testdir/real/target" "$testdir/virtual/link" "$testdir/real/target" # link name mapped
     assert_readlink "$testdir/real/link" "$testdir/virtual/target" "$testdir/virtual/link" "$testdir/virtual/target" # link contents not mapped
-    teardown
 }
 
 test_readlink_f() {
@@ -89,7 +89,6 @@ test_readlink_f() {
     check_output_file readlink_f_reallink "$testdir/real/dir1/dir2/file2"
     check_output_file readlink_f_virtlink "$testdir/virtual/dir1/dir2/file2"
     test x"$(cat "$testdir/real/dir1/relativelink")"
-    teardown
 }
 
 test_ln() {
@@ -98,7 +97,6 @@ test_ln() {
     readlink "$testdir/real/dir1/link" >../out/ln
     check_strace_file ln
     check_output_file ln "linkcontent"
-    teardown
 }
 
 disabled_test_thunar() { # Disabled because slow and not really useful
@@ -115,7 +113,6 @@ disabled_test_thunar() { # Disabled because slow and not really useful
     LD_PRELOAD="$lib" strace Thunar "$testdir/virtual" >../out/Thunar 2>../strace/Thunar &
     sleep 3; kill %1
     check_strace_file Thunar
-    teardown
 }
 
 test_cat() {
@@ -123,7 +120,6 @@ test_cat() {
     LD_PRELOAD="$lib" strace cat "$testdir/virtual/file0" >../out/cat 2>../strace/cat
     check_output_file cat "content0"
     check_strace_file cat
-    teardown
 }
 
 test_find() {
@@ -137,7 +133,6 @@ test_find() {
 /tmp/path-mapping/tests/virtual/dir1/dir2
 /tmp/path-mapping/tests/virtual/dir1/dir2/file3
 /tmp/path-mapping/tests/virtual/dir1/dir2/file2"
-    teardown
 }
 
 test_grep() {
@@ -148,7 +143,6 @@ test_grep() {
 /tmp/path-mapping/tests/virtual/dir1/file1:content1
 /tmp/path-mapping/tests/virtual/dir1/dir2/file3:content3
 /tmp/path-mapping/tests/virtual/dir1/dir2/file2:content2"
-    teardown
 }
 
 test_chmod() {
@@ -157,7 +151,6 @@ test_chmod() {
     LD_PRELOAD="$lib" strace chmod 777 "$testdir/virtual/file0" >../out/chmod 2>../strace/chmod
     check_strace_file chmod
     test "$(stat -c %a "$testdir/real/file0")" == 777
-    teardown
 }
 
 test_rm() {
@@ -165,7 +158,6 @@ test_rm() {
     LD_PRELOAD="$lib" strace rm -r "$testdir/virtual/dir1" >../out/rm 2>../strace/rm
     check_strace_file rm
     test '!' -e "$testdir/real/dir1"
-    teardown
 }
 
 test_rename() {
@@ -174,7 +166,6 @@ test_rename() {
     check_strace_file rename
     test '!' -e "$testdir/real/dir1"
     test -e "$testdir/real/dir1_renamed"
-    teardown
 }
 
 test_bash_exec() {
@@ -183,7 +174,6 @@ test_bash_exec() {
     LD_PRELOAD="$lib" strace bash -c "'$testdir/virtual/dir1/echo' arg1 arg2 arg3 arg4 arg5" >../out/bash_exec 2>../strace/bash_exec
     check_strace_file bash_exec
     check_output_file bash_exec "arg1 arg2 arg3 arg4 arg5"
-    teardown
 }
 
 test_execl() {
@@ -210,7 +200,6 @@ test_execl() {
     check_strace_file execle3
     check_output_file execle3 $'arg1\narg2\narg3\nTEST1=value1\nTEST2=value2'
 
-    teardown
 }
 
 test_du() {
@@ -220,7 +209,6 @@ test_du() {
     check_output_file du "8	/tmp/path-mapping/tests/virtual/dir1/dir2
 12	/tmp/path-mapping/tests/virtual/dir1
 16	/tmp/path-mapping/tests/virtual/"
-    teardown
 }
 
 test_df() { # Tests realpath()
@@ -229,7 +217,6 @@ test_df() { # Tests realpath()
     LD_PRELOAD="$lib" strace df -h "$testdir/virtual/" >../out/df 2>../strace/df
     check_strace_file df
     check_output_file df "$expected"
-    teardown
 }
 
 test_getfacl() { # Tests getxattr()
@@ -238,19 +225,37 @@ test_getfacl() { # Tests getxattr()
     LD_PRELOAD="$lib" strace getfacl "$testdir/virtual/" >../out/getfacl 2>../strace/getfacl
     check_strace_file getfacl
     check_output_file getfacl "$expected"
-    teardown
 }
 
 # Setup up output directories for the test cases
 mkdir -p "$tempdir/out"
 mkdir -p "$tempdir/strace"
 
-# Find and execute all declared functions starting with "test_" in a random order
+# Find all declared functions starting with "test_" in a random order
 testcases="$(declare -F | cut -d " " -f 3- | grep '^test_' | shuf)"
-for cmd in $testcases; do
-    echo "$cmd"
-    $cmd
-done
+num_testcases="$(echo "$testcases" | wc -l)"
 
-echo "ALL TESTS PASSED!"
+N=0
+if [[ $# -gt 0 ]]; then
+    while [[ $# -gt 0 ]]; do
+        if [[ "$testcases" =~ "$1" ]]; then
+            echo "$1"
+            $1
+            shift
+        else
+            echo "Unknown test case $1"
+            exit 1
+            N=$[N+1]
+        fi
+    done
+else
+    # If no argument is given, execute all test cases
+    for cmd in $testcases; do
+        echo "$cmd"
+        $cmd
+        N=$[N+1]
+    done
+fi
+
+echo "$N/$num_testcases TESTS PASSED!"
 #rm -rf "$tempdir"
