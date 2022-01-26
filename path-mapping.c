@@ -525,7 +525,7 @@ int execle(const char *filename, const char *arg0, ... /* , char *const env[] */
 typedef int (*orig_rename_func_type)(const char *oldpath, const char *newpath);
 int rename(const char *oldpath, const char *newpath)
 {
-    debug_fprintf(stderr, "rename(%s) called\n", pathname);
+    debug_fprintf(stderr, "rename(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
     const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
@@ -542,7 +542,7 @@ int rename(const char *oldpath, const char *newpath)
 typedef int (*orig_renameat_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath);
 int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
-    debug_fprintf(stderr, "renameat(%s) called\n", pathname);
+    debug_fprintf(stderr, "renameat(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
     const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
@@ -559,7 +559,7 @@ int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpat
 typedef int (*orig_renameat2_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags);
 int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
 {
-    debug_fprintf(stderr, "renameat2(%s) called\n", pathname);
+    debug_fprintf(stderr, "renameat2(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
     const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
@@ -579,7 +579,7 @@ int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpa
 typedef int (*orig_link_func_type)(const char *oldpath, const char *newpath);
 int link(const char *oldpath, const char *newpath)
 {
-    debug_fprintf(stderr, "link(%s) called\n", pathname);
+    debug_fprintf(stderr, "link(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
     const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
@@ -596,7 +596,7 @@ int link(const char *oldpath, const char *newpath)
 typedef int (*orig_linkat_func_type)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
 int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
 {
-    debug_fprintf(stderr, "linkat(%s) called\n", pathname);
+    debug_fprintf(stderr, "linkat(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
     const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
