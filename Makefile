@@ -7,7 +7,7 @@ UNIT_TESTS = test-pathmatching
 
 all: path-mapping.so testtools unit_tests
 
-path-mapping.so: path-mapping.c override-macros.h
+path-mapping.so: path-mapping.c
 	gcc $(CFLAGS) -shared -fPIC path-mapping.c -o path-mapping.so -ldl
 
 clean:
@@ -22,7 +22,7 @@ unit_tests: $(addprefix $(TESTDIR)/, $(UNIT_TESTS))
 
 testtools: $(addprefix $(TESTDIR)/, $(TESTTOOLS))
 
-$(TESTDIR)/test-%: $(SRCDIR)/test/test-%.c $(SRCDIR)/path-mapping.c $(SRCDIR)/override-macros.h
+$(TESTDIR)/test-%: $(SRCDIR)/test/test-%.c $(SRCDIR)/path-mapping.c
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); gcc $(CFLAGS) $< "$(SRCDIR)/path-mapping.c" -ldl -o $@
 
