@@ -5,10 +5,10 @@ TESTDIR ?= /tmp/path-mapping
 TESTTOOLS = testtool-execl testtool-printenv testtool-utime testtool-ftw testtool-nftw testtool-fts
 UNIT_TESTS = test-pathmatching
 
-all: path-mapping.so testtools unit_tests
-
 path-mapping.so: path-mapping.c
 	gcc $(CFLAGS) -shared -fPIC path-mapping.c -o path-mapping.so -ldl
+
+all: path-mapping.so testtools unit_tests
 
 clean:
 	rm -f *.so
