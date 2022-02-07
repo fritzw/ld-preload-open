@@ -71,8 +71,25 @@ There are two ways to specify the path mappings. An arbitrary number of mappings
 
 ## Compiling and installation
 
-Just run `make` to compile `path-mapping.so`.
-Place this file anywhere you like and provide its absolute path to `LD_PRELOAD=/absolute/path/to/path-mapping.so` to use it.
+Just run `make all` to compile the different versions of the library:
+* `path-mapping-quiet.so` is compiled with `#define QUIET`.
+  It will not print anything, except in case of a fatal configuration error, before stopping the process.
+* `path-mapping.so` will print out a diagnostig string to stderr when a path is mapped to a new destination.
+* `path-mapping-debug.so` is compiled with `#define DEBUG`.
+  It will will additionally print out one line for each function call to any overridden function.
+  This is very slow and noisy. Only use it to determine which paths need overriding.
+
+Just choose one of those files and place it anywhere convenient.
+Note its absolute path and provide it to the target program as `LD_PRELOAD`, for example:
+
+    cd $HOME/repos/ld-preload-open
+    git clone https://github.com/fritzw/ld-preload-open.git
+    cd ld-preload-open
+    make all
+    export PATH_MAPPING=/somewhere:/$HOME
+    LD_PRELOAD=$HOME/repos/ld-preload-open/path-mapping.so /bin/ls /somewhere
+
+
 
 ## Compile time options
 
