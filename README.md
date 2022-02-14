@@ -1,9 +1,13 @@
 # ld-preload-open / path-mapping.so
 This library can trick a process into opening absolute paths from a different location, similar to bind mounts, but without root access.
+The main difference that an affected process can (apparently) see and access files *inside* the virtual mapped directory, but cannot see the virtual directory *itself*.
+Also, in contrast to mounts, every process on a system can have its own mapping (disregarding mount namespaces in current kernels, which basically also require root access).
 
-> **WARNING:** This is kind of a hack.
-> It works quite well, mostly, but unforseen side effects or crashes can not be completely prevented.
-> ***DO NOT USE for mission critical software!***
+> **WARNING:** This library is kind of a hack.
+>
+> It works quite well, mostly, but unforseen side effects or crashes are totally possible (see **Potential problems** below).
+>
+> **_DO NOT USE for mission critical software!_**
 
 ## Example 1
 
@@ -79,16 +83,23 @@ Just run `make all` to compile the different versions of the library:
   It will will additionally print out one line for each function call to any overridden function.
   This is very slow and noisy. Only use it to determine which paths need overriding.
 
-Just choose one of those files and place it anywhere convenient.
+Choose one of those files and place it anywhere convenient.
 Note its absolute path and provide it to the target program as `LD_PRELOAD`, for example:
 
-    cd $HOME/repos/ld-preload-open
-    git clone https://github.com/fritzw/ld-preload-open.git
-    cd ld-preload-open
-    make all
-    export PATH_MAPPING=/somewhere:/$HOME
-    LD_PRELOAD=$HOME/repos/ld-preload-open/path-mapping.so /bin/ls /somewhere
-
+```bash
+cd $HOME/repos/
+git clone https://github.com/fritzw/ld-preload-open.git
+cd ld-preload-open
+make all
+make test
+export PATH_MAPPING=/somewhere:/$HOME
+LD_PRELOAD=$HOME/repos/ld-preload-open/path-mapping.so /bin/ls /somewhere
+# This should print something like the following:
+# PATH_MAPPING[0]: /somewhere => /home/you
+# Mapped Path: __xstat('/somewhere') => '/home/you'
+# Mapped Path: opendir('/somewhere') => '/home/you'
+# ... followed by the contents of your home directory.
+```
 
 
 ## Compile time options
