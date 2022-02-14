@@ -155,7 +155,7 @@ static void path_mapping_init()
     }
 
     for (int i = 0; i < path_map_length; i++) {
-        info_fprintf(stderr, "PATH_MAPPING: %s => %s\n", path_map[i][0], path_map[i][1]);
+        info_fprintf(stderr, "PATH_MAPPING[%d]: %s => %s\n", i, path_map[i][0], path_map[i][1]);
     }
 }
 
@@ -204,7 +204,7 @@ int path_prefix_matches(const char *prefix, const char *path)
 }
 
 // Check if path matches any defined prefix, and if so, replace it with its substitution
-static const char *fix_path(const char *path, char *new_path, size_t new_path_size)
+static const char *fix_path(const char *function_name, const char *path, char *new_path, size_t new_path_size)
 {
     if (path == NULL) return path;
 
@@ -215,13 +215,13 @@ static const char *fix_path(const char *path, char *new_path, size_t new_path_si
             size_t prefix_length = pathlen(prefix);
             size_t new_length = strlen(path) + pathlen(replace) - prefix_length;
             if (new_length > new_path_size - 1) {
-                error_fprintf(stderr, "ERROR fix_path: Path too long: %s", path);
+                error_fprintf(stderr, "ERROR fix_path: Path too long: %s(%s)", function_name, path);
                 return path;
             }
             const char *rest = path + prefix_length;
             strcpy(new_path, replace);
             strcat(new_path, rest);
-            info_fprintf(stderr, "Mapped Path: '%s' => '%s'\n", path, new_path);
+            info_fprintf(stderr, "Mapped Path: %s('%s') => '%s'\n", function_name, path, new_path);
             return new_path;
         }
     }
@@ -295,7 +295,7 @@ __NL__ returntype funcname (OVERRIDE_ARGS(has_varargs, nargs, __VA_ARGS__))\
 __NL__{\
 __NL__    debug_fprintf(stderr, #funcname "(%s) called\n", OVERRIDE_ARG(path_arg_pos, __VA_ARGS__));\
 __NL__    char buffer[MAX_PATH];\
-__NL__    const char *new_path = fix_path(OVERRIDE_ARG(path_arg_pos, __VA_ARGS__), buffer, sizeof buffer);\
+__NL__    const char *new_path = fix_path(#funcname, OVERRIDE_ARG(path_arg_pos, __VA_ARGS__), buffer, sizeof buffer);\
 __NL__ \
 __NL__    static OVERRIDE_TYPEDEF_NAME(funcname) orig_func = NULL;\
 __NL__    if (orig_func == NULL) {\
@@ -438,7 +438,7 @@ FTS *fts_open(char * const *path_argv, int options, fts_compare_func_t compare)
         if (buffers[i] == NULL) {
             goto _fts_open_cleanup;
         }
-        new_paths[i] = fix_path(path_argv[i], buffers[i], MAX_PATH);
+        new_paths[i] = fix_path("fts_open", path_argv[i], buffers[i], MAX_PATH);
     }
     new_paths[argc] = NULL; // terminating null pointer
 
@@ -535,7 +535,7 @@ int execl(const char *filename, const char *arg0, ...)
     debug_fprintf(stderr, "execl(%s) called\n", filename);
 
     char buffer[MAX_PATH];
-    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+    const char *new_path = fix_path("execl", filename, buffer, sizeof buffer);
 
     // Note: call execv, not execl, because we can't call varargs functions with an unknown number of args
     static orig_execv_func_type execv_func = NULL;
@@ -572,7 +572,7 @@ int execlp(const char *filename, const char *arg0, ...)
     debug_fprintf(stderr, "execlp(%s) called\n", filename);
 
     char buffer[MAX_PATH];
-    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+    const char *new_path = fix_path("execlp", filename, buffer, sizeof buffer);
 
     // Note: call execvp, not execlp, because we can't call varargs functions with an unknown number of args
     static orig_execvp_func_type execvp_func = NULL;
@@ -609,7 +609,7 @@ int execle(const char *filename, const char *arg0, ... /* , char *const env[] */
     debug_fprintf(stderr, "execl(%s) called\n", filename);
 
     char buffer[MAX_PATH];
-    const char *new_path = fix_path(filename, buffer, sizeof buffer);
+    const char *new_path = fix_path("execle", filename, buffer, sizeof buffer);
 
     // Note: call execve, not execle, because we can't call varargs functions with an unknown number of args
     static orig_execve_func_type execve_func = NULL;
@@ -651,8 +651,8 @@ int rename(const char *oldpath, const char *newpath)
     debug_fprintf(stderr, "rename(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
-    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
-    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+    const char *new_oldpath = fix_path("rename-old", oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path("rename-new", newpath, buffer2, sizeof buffer2);
 
     static orig_rename_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -668,8 +668,8 @@ int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpat
     debug_fprintf(stderr, "renameat(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
-    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
-    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+    const char *new_oldpath = fix_path("renameat-old", oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path("renameat-new", newpath, buffer2, sizeof buffer2);
 
     static orig_renameat_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -685,8 +685,8 @@ int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpa
     debug_fprintf(stderr, "renameat2(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
-    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
-    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+    const char *new_oldpath = fix_path("renameat2-old", oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path("renameat2-new", newpath, buffer2, sizeof buffer2);
 
     static orig_renameat2_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -705,8 +705,8 @@ int link(const char *oldpath, const char *newpath)
     debug_fprintf(stderr, "link(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
-    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
-    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+    const char *new_oldpath = fix_path("link-old", oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path("link-new", newpath, buffer2, sizeof buffer2);
 
     static orig_link_func_type orig_func = NULL;
     if (orig_func == NULL) {
@@ -722,8 +722,8 @@ int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath,
     debug_fprintf(stderr, "linkat(%s, %s) called\n", oldpath, newpath);
 
     char buffer[MAX_PATH], buffer2[MAX_PATH];
-    const char *new_oldpath = fix_path(oldpath, buffer, sizeof buffer);
-    const char *new_newpath = fix_path(newpath, buffer2, sizeof buffer2);
+    const char *new_oldpath = fix_path("linkat-old", oldpath, buffer, sizeof buffer);
+    const char *new_newpath = fix_path("linkat-new", newpath, buffer2, sizeof buffer2);
 
     static orig_linkat_func_type orig_func = NULL;
     if (orig_func == NULL) {
