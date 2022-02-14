@@ -377,13 +377,19 @@ mkdir -p "$testdir/out"
 mkdir -p "$testdir/strace"
 
 # Find all declared functions starting with "test_" in a random order
-testcases="$(declare -F | cut -d " " -f 3- | grep '^test_' | shuf)"
-num_testcases="$(echo "$testcases" | wc -l)"
+all_testcases="$(declare -F | cut -d " " -f 3- | grep test)"
+enabled_testcases="$(declare -F | cut -d " " -f 3- | grep '^test_' | shuf)"
+num_testcases="$(echo "$enabled_testcases" | wc -l)"
 
 N=0
 if [[ $# -gt 0 ]]; then
+    if [[ $1 == '-l' ]] || [[ $1 == "--list" ]]; then
+        echo "All test cases (including disabled ones):"
+        echo "$all_testcases"
+        exit 0
+    fi
     while [[ $# -gt 0 ]]; do
-        if [[ "$testcases" =~ "$1" ]]; then
+        if [[ "$all_testcases" =~ "$1" ]]; then
             echo "$1"
             $1
             shift
@@ -395,7 +401,7 @@ if [[ $# -gt 0 ]]; then
     done
 else
     # If no argument is given, execute all test cases
-    for cmd in $testcases; do
+    for cmd in $enabled_testcases; do
         echo "$cmd"
         $cmd
         N=$[N+1]
