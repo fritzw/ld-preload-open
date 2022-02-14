@@ -18,8 +18,12 @@ failure() {
     echo "Failed  $test_case  in line $lineno at command:"
     echo "$msg"
     echo
-    echo "stderr:"
-    cat "out/$test_case.err"
+    if [[ -f "out/$test_case.err" ]]; then
+        echo "stderr:"
+        cat "out/$test_case.err"
+    else
+            echo "stderr is empty"
+    fi
     echo
 }
 trap 'failure "${LINENO}" "${BASH_COMMAND}"' ERR
@@ -120,7 +124,7 @@ test_ln() {
     setup
     LD_PRELOAD="$lib" strace -o "strace/${FUNCNAME[0]}" \
         ln -s "linkcontent" "$testdir/virtual/dir1/link" \
-        2>out/${FUNCNAME[0]}.err
+        >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
     readlink "$testdir/real/dir1/link" >out/${FUNCNAME[0]}
     check_strace_file
     check_output_file "linkcontent"
@@ -194,7 +198,7 @@ test_utime() {
     setup
     LD_PRELOAD="$lib" strace -o "strace/${FUNCNAME[0]}" \
         ./testtool-utime "$testdir/virtual/dir1/file1" \
-        2>out/${FUNCNAME[0]}.err
+        >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
     chmod 700 real/dir1/file1
     stat -c %X:%Y "real/dir1/file1" >out/${FUNCNAME[0]}
     check_strace_file
@@ -315,7 +319,7 @@ test_mkfifo() {
     setup
     LD_PRELOAD="$lib" strace -o "strace/${FUNCNAME[0]}" \
         mkfifo "$testdir/virtual/dir1/fifo" \
-        2>out/${FUNCNAME[0]}.err
+        >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
     stat -c %F real/dir1/fifo >out/${FUNCNAME[0]}
     check_strace_file
     check_output_file "fifo"
@@ -325,7 +329,7 @@ test_mkdir() {
     setup
     LD_PRELOAD="$lib" strace -o "strace/${FUNCNAME[0]}" \
         mkdir "$testdir/virtual/dir1/newdir" \
-        2>out/${FUNCNAME[0]}.err
+        >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
     stat -c %F real/dir1/newdir >out/${FUNCNAME[0]}
     check_strace_file
     check_output_file "directory"
@@ -362,7 +366,8 @@ test_fts() {
     mkdir -p real/dir1/dir4
     echo content4 > real/dir1/dir4/file4
     LD_PRELOAD="$lib" strace -o "strace/${FUNCNAME[0]}" \
-        ./testtool-fts "$testdir/virtual/dir1/dir2" "$testdir/virtual/dir1/dir4" >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
+        ./testtool-fts "$testdir/virtual/dir1/dir2" "$testdir/virtual/dir1/dir4" \
+        >out/${FUNCNAME[0]} 2>out/${FUNCNAME[0]}.err
     check_strace_file
     check_output_file $'dir2\nfile2\nfile3\ndir2\ndir4\nfile4\ndir4'
 }
