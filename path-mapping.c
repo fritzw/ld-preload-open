@@ -121,7 +121,7 @@ static void path_mapping_init()
             exit(255);
         }
         strncpy(path_map_buffer, env_string, buffersize);
-        path_map_buffer[buffersize] = '\0';
+        path_map_buffer[buffersize - 1] = '\0';
 
         // Count the number of separators ':' to determine the size of the array of pointers
         int n_segments = 1;
